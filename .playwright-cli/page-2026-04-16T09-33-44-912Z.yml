@@ -1,0 +1,335 @@
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - paragraph [ref=e7]: Table privee cash game
+      - generic [ref=e8]:
+        - heading "Cash game prive" [level=1] [ref=e9]
+        - generic [ref=e10]: 9-max
+      - paragraph [ref=e11]: "texas-holdem-no-limit · cash · blindes 100/200 · cave 20 000 MGA · main #1"
+    - generic [ref=e12]:
+      - button "Pause" [ref=e13] [cursor=pointer]
+      - group "Vitesse" [ref=e14]:
+        - button "x1" [ref=e15] [cursor=pointer]
+        - button "x2" [ref=e16] [cursor=pointer]
+        - button "x4" [ref=e17] [cursor=pointer]
+      - button "Nouvelle partie / reset" [ref=e18] [cursor=pointer]
+  - generic [ref=e19]:
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - generic [ref=e23]: Pot total
+          - strong [ref=e24]: 300 MGA
+        - generic [ref=e25]:
+          - generic [ref=e26]: En jeu
+          - strong [ref=e27]: 9 / 9
+          - generic [ref=e28]: joueurs dans le coup
+        - generic [ref=e29]:
+          - generic [ref=e30]: Tour
+          - strong [ref=e31]: Preflop
+          - generic [ref=e32]: "action: David"
+        - generic [ref=e33]:
+          - generic [ref=e34]: Bouton
+          - strong [ref=e35]: Hero
+          - generic [ref=e36]: siège 1
+      - generic [ref=e37]:
+        - generic:
+          - generic:
+            - generic: Preflop
+            - generic:
+              - generic: Le board arrive apres le preflop.
+            - generic:
+              - generic:
+                - generic: Main pot
+                - strong: 200 MGA
+              - generic:
+                - generic: Side pot 1
+                - strong: 100 MGA
+        - generic [ref=e39]:
+          - generic [ref=e40]:
+            - generic [ref=e41]: Siege 1
+            - generic [ref=e43]: D
+          - generic [ref=e44]:
+            - strong [ref=e45]: Hero
+            - generic [ref=e46]: 20 000 MGA
+          - generic [ref=e47]:
+            - generic [ref=e48]: En attente
+            - generic [ref=e49]:
+              - text: Mise courante
+              - strong [ref=e50]: "0"
+          - generic [ref=e51]:
+            - img "Dame de trefle" [ref=e52]:
+              - generic [ref=e53]:
+                - generic [ref=e54]: Q
+                - generic [ref=e55]: ♣
+              - generic [ref=e56]:
+                - generic [ref=e57]: Q
+                - generic [ref=e58]: ♣
+              - generic [ref=e59]:
+                - generic [ref=e60]: Q
+                - generic [ref=e61]: ♣
+            - img "As de pique" [ref=e62]:
+              - generic [ref=e63]:
+                - generic [ref=e64]: A
+                - generic [ref=e65]: ♠
+              - generic [ref=e67]: ♠
+              - generic [ref=e68]:
+                - generic [ref=e69]: A
+                - generic [ref=e70]: ♠
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - generic [ref=e74]: Siege 2
+            - generic [ref=e75]:
+              - generic [ref=e76]: SB
+              - generic [ref=e77]: Profil
+          - generic [ref=e78]:
+            - strong [ref=e79]: Pierre
+            - generic [ref=e80]: 19 900 MGA
+          - generic [ref=e81]:
+            - generic [ref=e82]: SB 100
+            - generic [ref=e83]:
+              - text: Mise courante
+              - strong [ref=e84]: "100"
+          - generic [ref=e85]:
+            - img "Carte cachee" [ref=e86]:
+              - generic [ref=e88]: ♠
+            - img "Carte cachee" [ref=e89]:
+              - generic [ref=e91]: ♠
+          - note "Profil de Pierre":
+            - strong: loose-passif calling station
+            - paragraph: Call tout le temps, paie trop pour voir, tres difficile a bluffer, value evidente contre lui.
+            - paragraph: VPIP 48-62 · PFR 5-10 · Limp 25-40
+            - paragraph: Cold call 18-32 · 3bet 0-2 · Bluff 0-4
+            - list:
+              - listitem: limp/call beaucoup
+              - listitem: paie trop avec top pair, middle pair, draws, hauteur parfois
+              - listitem: bluffe presque jamais
+        - generic [ref=e93]:
+          - generic [ref=e94]:
+            - generic [ref=e95]: Siege 3
+            - generic [ref=e96]:
+              - generic [ref=e97]: BB
+              - generic [ref=e98]: Profil
+          - generic [ref=e99]:
+            - strong [ref=e100]: Eric
+            - generic [ref=e101]: 19 800 MGA
+          - generic [ref=e102]:
+            - generic [ref=e103]: BB 200
+            - generic [ref=e104]:
+              - text: Mise courante
+              - strong [ref=e105]: "200"
+          - generic [ref=e106]:
+            - img "Carte cachee" [ref=e107]:
+              - generic [ref=e109]: ♠
+            - img "Carte cachee" [ref=e110]:
+              - generic [ref=e112]: ♠
+          - note "Profil de Eric":
+            - strong: agressif optimiste
+            - paragraph: Agressif, optimiste, surestime la force de ses raises et de ses mains. Peut mettre de la pression, peut aussi s emballer.
+            - paragraph: VPIP 28-40 · PFR 18-28 · Limp 5-15
+            - paragraph: Cold call 8-18 · 3bet 4-9 · Bluff 10-20
+            - list:
+              - listitem: attaque la faiblesse percue
+              - listitem: peut surjouer top pair ou overpair moyenne
+              - listitem: peut faire des gros sizings non all-in
+        - generic [ref=e114]:
+          - generic [ref=e115]:
+            - generic [ref=e116]: Siege 4
+            - generic [ref=e118]: Profil
+          - generic [ref=e119]:
+            - strong [ref=e120]: David
+            - generic [ref=e121]: 20 000 MGA
+          - generic [ref=e122]:
+            - generic [ref=e123]: En attente
+            - generic [ref=e124]:
+              - text: Mise courante
+              - strong [ref=e125]: "0"
+          - generic [ref=e126]:
+            - img "Carte cachee" [ref=e127]:
+              - generic [ref=e129]: ♠
+            - img "Carte cachee" [ref=e130]:
+              - generic [ref=e132]: ♠
+          - note "Profil de David":
+            - strong: serre standard lisible
+            - paragraph: Plus proche d un jeu propre / standard, mais lisible. Peut etre exploite sur les mismatches board/range ou les lignes bizarres.
+            - paragraph: VPIP 17-24 · PFR 13-18 · Limp 0-8
+            - paragraph: Cold call 5-12 · 3bet 4-7 · Bluff 8-15
+            - list:
+              - listitem: plus coherent que la moyenne de la table
+              - listitem: moins de limp
+              - listitem: sizings plus standards
+        - generic [ref=e134]:
+          - generic [ref=e135]:
+            - generic [ref=e136]: Siege 5
+            - generic [ref=e138]: Profil
+          - generic [ref=e139]:
+            - strong [ref=e140]: Pascal
+            - generic [ref=e141]: 20 000 MGA
+          - generic [ref=e142]:
+            - generic [ref=e143]: En attente
+            - generic [ref=e144]:
+              - text: Mise courante
+              - strong [ref=e145]: "0"
+          - generic [ref=e146]:
+            - img "Carte cachee" [ref=e147]:
+              - generic [ref=e149]: ♠
+            - img "Carte cachee" [ref=e150]:
+              - generic [ref=e152]: ♠
+          - note "Profil de Pascal":
+            - strong: serre craintif
+            - paragraph: Tight, prudent, peur de la relance et du gros pot. Cible naturelle pour la pression. Bluffe peu.
+            - paragraph: VPIP 14-22 · PFR 8-12 · Limp 5-15
+            - paragraph: Cold call 5-12 · 3bet 1-3 · Bluff 0-6
+            - list:
+              - listitem: overfold face a l agression
+              - listitem: n aime pas etre relance
+              - listitem: se protege trop
+        - generic [ref=e154]:
+          - generic [ref=e155]:
+            - generic [ref=e156]: Siege 6
+            - generic [ref=e158]: Profil
+          - generic [ref=e159]:
+            - strong [ref=e160]: Renaud
+            - generic [ref=e161]: 20 000 MGA
+          - generic [ref=e162]:
+            - generic [ref=e163]: En attente
+            - generic [ref=e164]:
+              - text: Mise courante
+              - strong [ref=e165]: "0"
+          - generic [ref=e166]:
+            - img "Carte cachee" [ref=e167]:
+              - generic [ref=e169]: ♠
+            - img "Carte cachee" [ref=e170]:
+              - generic [ref=e172]: ♠
+          - note "Profil de Renaud":
+            - strong: serre avec mains fetiches
+            - paragraph: Plutot serre, mais attachement irrationnel a certaines mains fetiches. Peut payer des overbets douteux avec ses mains preferees.
+            - paragraph: VPIP 18-28 · PFR 10-16 · Limp 5-15
+            - paragraph: Cold call 8-16 · 3bet 2-5 · Bluff 3-10
+            - list:
+              - listitem: profil serre globalement
+              - listitem: mais deviation forte quand il a une main fetiche
+              - listitem: peut trop s accrocher a certains combos
+        - generic [ref=e174]:
+          - generic [ref=e175]:
+            - generic [ref=e176]: Siege 7
+            - generic [ref=e178]: Profil
+          - generic [ref=e179]:
+            - strong [ref=e180]: Fabrice
+            - generic [ref=e181]: 20 000 MGA
+          - generic [ref=e182]:
+            - generic [ref=e183]: En attente
+            - generic [ref=e184]:
+              - text: Mise courante
+              - strong [ref=e185]: "0"
+          - generic [ref=e186]:
+            - img "Carte cachee" [ref=e187]:
+              - generic [ref=e189]: ♠
+            - img "Carte cachee" [ref=e190]:
+              - generic [ref=e192]: ♠
+          - note "Profil de Fabrice":
+            - strong: agressif calculateur
+            - paragraph: Le plus propre/agressif-calculateur du groupe. Peu de leaks grossiers. Evite d en faire un bot fou.
+            - paragraph: VPIP 22-30 · PFR 18-24 · Limp 0-6
+            - paragraph: Cold call 5-12 · 3bet 6-10 · Bluff 10-18
+            - list:
+              - listitem: met de la pression mieux que les autres
+              - listitem: moins de calls idiots
+              - listitem: moins bluffable
+        - generic [ref=e194]:
+          - generic [ref=e195]:
+            - generic [ref=e196]: Siege 8
+            - generic [ref=e198]: Profil
+          - generic [ref=e199]:
+            - strong [ref=e200]: Martin
+            - generic [ref=e201]: 20 000 MGA
+          - generic [ref=e202]:
+            - generic [ref=e203]: En attente
+            - generic [ref=e204]:
+              - text: Mise courante
+              - strong [ref=e205]: "0"
+          - generic [ref=e206]:
+            - img "Carte cachee" [ref=e207]:
+              - generic [ref=e209]: ♠
+            - img "Carte cachee" [ref=e210]:
+              - generic [ref=e212]: ♠
+          - note "Profil de Martin":
+            - strong: agressif kamikaze
+            - paragraph: Agressif, joue pour l adrenaline, peut surjouer, peut spew, peut mettre des gros sizings et des overbets, surtout quand il s ennuie ou apres un coup emotionnel.
+            - paragraph: VPIP 35-50 · PFR 24-35 · Limp 0-10
+            - paragraph: Cold call 5-15 · 3bet 8-16 · Bluff 20-35
+            - list:
+              - listitem: peut mettre une vraie pression
+              - listitem: plus susceptible que les autres aux gros coups emotionnels
+              - listitem: capable de 3-bet/4-bet plus loose
+        - generic [ref=e214]:
+          - generic [ref=e215]:
+            - generic [ref=e216]: Siege 9
+            - generic [ref=e218]: Profil
+          - generic [ref=e219]:
+            - strong [ref=e220]: Eric B
+            - generic [ref=e221]: 20 000 MGA
+          - generic [ref=e222]:
+            - generic [ref=e223]: En attente
+            - generic [ref=e224]:
+              - text: Mise courante
+              - strong [ref=e225]: "0"
+          - generic [ref=e226]:
+            - img "Carte cachee" [ref=e227]:
+              - generic [ref=e229]: ♠
+            - img "Carte cachee" [ref=e230]:
+              - generic [ref=e232]: ♠
+          - note "Profil de Eric B":
+            - strong: suiveur fou irrationnel
+            - paragraph: Tres irrationnel, suit trop, discipline faible, quasiment jamais en bluff construit. A value plus qu a bluff.
+            - paragraph: VPIP 45-65 · PFR 3-8 · Limp 30-50
+            - paragraph: Cold call 20-35 · 3bet 0-2 · Bluff 0-2
+            - list:
+              - listitem: suit trop meme avec des mains dominees
+              - listitem: quasi jamais de bluff intentionnel
+              - listitem: peut payer des sizings absurdes
+    - generic [ref=e233]:
+      - generic [ref=e234]:
+        - generic [ref=e235]:
+          - generic [ref=e236]:
+            - paragraph [ref=e237]: Hero
+            - strong [ref=e238]: Decision en direct
+          - generic [ref=e239]:
+            - generic [ref=e240]: A payer
+            - strong [ref=e241]: "200"
+        - generic [ref=e242]:
+          - generic [ref=e243]:
+            - generic [ref=e244]: Stack
+            - strong [ref=e245]: "20000"
+          - generic [ref=e246]:
+            - generic [ref=e247]: Street
+            - strong [ref=e248]: preflop
+          - generic [ref=e249]:
+            - generic [ref=e250]: Pot
+            - strong [ref=e251]: "300"
+        - generic [ref=e252]:
+          - generic [ref=e253]: "Raise / bet size: 400"
+          - 'slider "Raise / bet size: 400" [ref=e254]': "400"
+          - generic [ref=e255]:
+            - generic [ref=e256]: "400"
+            - generic [ref=e257]: "20000"
+        - generic [ref=e258]:
+          - button "Fold" [ref=e259] [cursor=pointer]
+          - button "Call 200" [ref=e260] [cursor=pointer]
+          - button "Raise 400" [ref=e261] [cursor=pointer]
+          - button "All-in 20000" [ref=e262] [cursor=pointer]
+      - complementary [ref=e263]:
+        - generic [ref=e264]:
+          - generic [ref=e265]:
+            - paragraph [ref=e266]: Live log
+            - heading "Historique" [level=2] [ref=e267]
+          - generic [ref=e268]: "3"
+        - generic [ref=e269]:
+          - generic [ref=e270]:
+            - generic [ref=e271]: preflop
+            - paragraph [ref=e272]: "Eric: posts big blind 200"
+          - generic [ref=e273]:
+            - generic [ref=e274]: preflop
+            - paragraph [ref=e275]: "Pierre: posts small blind 100"
+          - generic [ref=e276]:
+            - generic [ref=e277]: meta
+            - paragraph [ref=e278]: "--- Hand #1 | blinds 100/200 ---"

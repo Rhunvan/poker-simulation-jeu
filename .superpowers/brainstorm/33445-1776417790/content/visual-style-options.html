@@ -1,0 +1,348 @@
+<style>
+  .lead {
+    max-width: 920px;
+    color: rgba(255, 248, 235, 0.8);
+    margin-bottom: 24px;
+  }
+
+  .cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .card {
+    overflow: hidden;
+    border-radius: 8px;
+  }
+
+  .card-image {
+    padding: 18px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+  }
+
+  .scene {
+    border-radius: 8px;
+    padding: 18px 16px 22px;
+    min-height: 300px;
+    display: grid;
+    gap: 18px;
+    align-content: start;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+
+  .scene.walnut {
+    background:
+      radial-gradient(circle at 50% 6%, rgba(255, 212, 140, 0.22), transparent 24%),
+      linear-gradient(180deg, #34251b 0%, #1d1510 100%);
+  }
+
+  .scene.burgundy {
+    background:
+      radial-gradient(circle at 50% 8%, rgba(255, 224, 180, 0.14), transparent 22%),
+      linear-gradient(180deg, #3a1520 0%, #190c11 100%);
+  }
+
+  .scene.olive {
+    background:
+      radial-gradient(circle at 50% 8%, rgba(255, 220, 162, 0.14), transparent 22%),
+      linear-gradient(180deg, #243126 0%, #101712 100%);
+  }
+
+  .mini-table {
+    position: relative;
+    height: 138px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 231, 189, 0.16);
+    overflow: hidden;
+    box-shadow:
+      inset 0 0 0 10px rgba(84, 52, 30, 0.22),
+      inset 0 0 60px rgba(0, 0, 0, 0.32),
+      0 18px 40px rgba(0, 0, 0, 0.26);
+  }
+
+  .mini-table::before {
+    content: "";
+    position: absolute;
+    inset: 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .mini-table.felt-warm {
+    background:
+      radial-gradient(circle at 50% 12%, rgba(255, 231, 180, 0.16), transparent 26%),
+      linear-gradient(180deg, #3f5a41 0%, #243328 100%);
+  }
+
+  .mini-table.felt-burgundy {
+    background:
+      radial-gradient(circle at 50% 12%, rgba(255, 220, 179, 0.12), transparent 26%),
+      linear-gradient(180deg, #6e2438 0%, #35131e 100%);
+  }
+
+  .mini-table.felt-olive {
+    background:
+      radial-gradient(circle at 50% 12%, rgba(255, 227, 179, 0.12), transparent 26%),
+      linear-gradient(180deg, #45593d 0%, #283124 100%);
+  }
+
+  .pot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    border: 1px solid rgba(248, 220, 165, 0.22);
+    background: rgba(15, 10, 7, 0.45);
+    color: rgba(255, 242, 220, 0.88);
+  }
+
+  .seat-dot {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: rgba(255, 238, 209, 0.75);
+    box-shadow: 0 0 0 5px rgba(255,255,255,0.05);
+  }
+
+  .seat-dot.s1 { left: 16%; top: 18%; }
+  .seat-dot.s2 { right: 16%; top: 18%; }
+  .seat-dot.s3 { left: 8%; top: 46%; }
+  .seat-dot.s4 { right: 8%; top: 46%; }
+  .seat-dot.s5 { left: 26%; bottom: 14%; }
+  .seat-dot.s6 { right: 26%; bottom: 14%; }
+
+  .card-fan {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding-top: 2px;
+  }
+
+  .playing-card {
+    width: 86px;
+    aspect-ratio: 0.71;
+    border-radius: 8px;
+    position: relative;
+    box-shadow:
+      0 18px 28px rgba(0, 0, 0, 0.24),
+      inset 0 0 0 1px rgba(255,255,255,0.68);
+  }
+
+  .playing-card::before,
+  .playing-card::after {
+    content: "";
+    position: absolute;
+    border-radius: 8px;
+    inset: 8px;
+  }
+
+  .playing-card.ivory-gold {
+    background: linear-gradient(180deg, #f6f1e6 0%, #ece2d0 100%);
+  }
+
+  .playing-card.ivory-gold::before {
+    border: 1px solid rgba(176, 132, 60, 0.55);
+  }
+
+  .playing-card.ivory-gold::after {
+    inset: 14px;
+    border: 1px solid rgba(176, 132, 60, 0.25);
+  }
+
+  .playing-card.cream-brass {
+    background: linear-gradient(180deg, #f3ecde 0%, #e7dbc5 100%);
+  }
+
+  .playing-card.cream-brass::before {
+    border: 1px solid rgba(196, 142, 71, 0.7);
+  }
+
+  .playing-card.cream-brass::after {
+    inset: 11px;
+    border: 2px solid rgba(196, 142, 71, 0.18);
+  }
+
+  .playing-card.sage-gold {
+    background: linear-gradient(180deg, #eee8dc 0%, #ddd3c0 100%);
+  }
+
+  .playing-card.sage-gold::before {
+    border: 1px solid rgba(153, 129, 73, 0.6);
+  }
+
+  .playing-card.sage-gold::after {
+    inset: 15px;
+    border: 1px solid rgba(153, 129, 73, 0.2);
+  }
+
+  .motif {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: rgba(122, 94, 43, 0.52);
+    font-size: 28px;
+  }
+
+  .motif.tall {
+    font-size: 22px;
+    letter-spacing: 6px;
+  }
+
+  .chip-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .chip {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: 2px solid rgba(255,255,255,0.35);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+  }
+
+  .chip.c1 { background: #f2efe7; }
+  .chip.c2 { background: #b9873e; }
+  .chip.c3 { background: #8b3245; }
+  .chip.c4 { background: #364d37; }
+
+  .recommend {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: rgba(255, 221, 166, 0.12);
+    border: 1px solid rgba(255, 221, 166, 0.24);
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #ffdca0;
+    width: fit-content;
+    margin-top: 8px;
+  }
+
+  .tone-list {
+    display: grid;
+    gap: 6px;
+    color: rgba(255, 248, 235, 0.82);
+    font-size: 14px;
+  }
+</style>
+
+<h2>Choix du couple cartes + environnement</h2>
+<p class="subtitle">On reste dans “lounge premium chaleureux”, mais avec trois nuances. Clique celle qui te donne le plus envie de jouer.</p>
+<p class="lead">Les cartes restent volontairement vierges de valeurs et de symboles finals: ici on valide la matiere, le cadre et l’ambiance generale de la table avant de lancer les images OpenAI puis l’integration dans le jeu.</p>
+
+<div class="cards">
+  <div class="card" data-choice="A" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="scene walnut">
+        <div class="mini-table felt-warm">
+          <div class="seat-dot s1"></div>
+          <div class="seat-dot s2"></div>
+          <div class="seat-dot s3"></div>
+          <div class="seat-dot s4"></div>
+          <div class="seat-dot s5"></div>
+          <div class="seat-dot s6"></div>
+          <div class="pot">pot central</div>
+        </div>
+        <div class="card-fan">
+          <div class="playing-card ivory-gold"><div class="motif">◇</div></div>
+          <div class="playing-card ivory-gold"><div class="motif">◇</div></div>
+        </div>
+        <div class="chip-row">
+          <div class="chip c1"></div>
+          <div class="chip c2"></div>
+          <div class="chip c4"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Noyer + vert profond</h3>
+      <p>Le plus elegant et le plus equilibré. Ivoire mat, cadre art deco fin, feutre vert riche, bois sombre et lumiere ambre douce.</p>
+      <div class="recommend">Recommandation</div>
+      <div class="tone-list">
+        <div>Carte: sobre, chic, lisible</div>
+        <div>Table: premium, chaleureuse, stable</div>
+        <div>Rendu: joli sans faire casino tape-a-l’oeil</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="B" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="scene burgundy">
+        <div class="mini-table felt-burgundy">
+          <div class="seat-dot s1"></div>
+          <div class="seat-dot s2"></div>
+          <div class="seat-dot s3"></div>
+          <div class="seat-dot s4"></div>
+          <div class="seat-dot s5"></div>
+          <div class="seat-dot s6"></div>
+          <div class="pot">pot central</div>
+        </div>
+        <div class="card-fan">
+          <div class="playing-card cream-brass"><div class="motif tall">||</div></div>
+          <div class="playing-card cream-brass"><div class="motif tall">||</div></div>
+        </div>
+        <div class="chip-row">
+          <div class="chip c3"></div>
+          <div class="chip c2"></div>
+          <div class="chip c1"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Bordeaux + laiton</h3>
+      <p>Plus feutré, plus club prive. La carte a un cadre un peu plus visible et la table prend une tonalite rouge velours.</p>
+      <div class="tone-list">
+        <div>Carte: presence plus marquee</div>
+        <div>Table: intime, tamisee, un peu plus dramatique</div>
+        <div>Rendu: plus typé, moins universel</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="C" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="scene olive">
+        <div class="mini-table felt-olive">
+          <div class="seat-dot s1"></div>
+          <div class="seat-dot s2"></div>
+          <div class="seat-dot s3"></div>
+          <div class="seat-dot s4"></div>
+          <div class="seat-dot s5"></div>
+          <div class="seat-dot s6"></div>
+          <div class="pot">pot central</div>
+        </div>
+        <div class="card-fan">
+          <div class="playing-card sage-gold"><div class="motif">✦</div></div>
+          <div class="playing-card sage-gold"><div class="motif">✦</div></div>
+        </div>
+        <div class="chip-row">
+          <div class="chip c4"></div>
+          <div class="chip c2"></div>
+          <div class="chip c1"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Sauge + or patine</h3>
+      <p>Une variante plus douce, plus design, avec une table olive grisee et une carte un peu plus editoriale.</p>
+      <div class="tone-list">
+        <div>Carte: raffinée et calme</div>
+        <div>Table: plus contemporaine, moins poker classique</div>
+        <div>Rendu: elegant, mais un peu moins immédiatement “table de jeu”</div>
+      </div>
+    </div>
+  </div>
+</div>
