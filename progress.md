@@ -67,3 +67,14 @@ Original prompt: Alors, il faudrait ajouter un nouvel historique quand on joue a
 - Validation responsive : aucun débordement à 1440x1000 ou 390x844; conseil à 78 px du haut sur iPhone 12 Pro; 7 profils pris en compte; aucune carte adverse ni erreur console.
 - Validation finale : ESLint OK, TypeScript OK, build Vite OK, 44 tests sur 44.
 - Captures et rapport : `output/web-game/real-gto-validation/`.
+
+## Publication Sites et mémoire des mains
+
+- Migration de l app Vite vers le runtime Sites/Vinext sans remplacer le moteur, les profils, le store ou l interface existante.
+- Ajout d un accès partagé protégé côté serveur par mot de passe et cookie signé; les secrets restent hors du dépôt.
+- Ajout d une base D1 et de sa migration Drizzle pour conserver durablement les mains GTO.
+- Le serveur valide puis recalcule chaque spot avant sauvegarde; aucun état synthétique complet ni carte adverse cachée n est enregistré.
+- Ajout dans le GTO réel d un bouton explicite `Enregistrer cette main`, de l action réellement jouée, du montant, du résultat net et d une note facultative.
+- Ajout d une liste des mains enregistrées avec reprise, recalcul local, compteur et suppression.
+- Les observations sont collectées pour de futures recalibrations, mais ne changent jamais automatiquement les profils.
+- Validation finale locale : 50 tests sur 50, ESLint OK, TypeScript OK et build Sites/Vinext OK avec serveur, configuration et migration D1.

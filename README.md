@@ -1,6 +1,6 @@
 # Table privee cash game
 
-Simulation locale de Texas Hold'em No-Limit pour reproduire une vraie table privee de cash game, pas une table GTO ni un bac a shoves.
+Simulation de Texas Hold'em No-Limit pour reproduire une vraie table privee de cash game, avec un assistant GTO approche adapte aux profils presents.
 
 ## Lancer
 
@@ -23,6 +23,23 @@ npm run build
 
 ```bash
 npm test
+```
+
+## Version Sites, acces et mains GTO
+
+La version hebergee utilise la configuration Sites dans `.openai/hosting.json`.
+
+- l adresse reste publiquement joignable, puis un mot de passe partage protege l application cote serveur;
+- `SITE_ACCESS_PASSWORD` et `SITE_SESSION_SECRET` sont des secrets de production, jamais des valeurs commitees;
+- les mains enregistrees depuis `GTO table reelle` sont conservees durablement dans D1;
+- le serveur recalcule le spot avant de le sauvegarder et ne stocke aucune carte adverse cachee;
+- action reellement jouee, montant, resultat net et note restent facultatifs;
+- les observations constituent une memoire de table, sans modifier automatiquement les profils ni les conseils.
+
+Migration de la base:
+
+```bash
+npm run db:generate
 ```
 
 ## Calibration bots
@@ -177,6 +194,7 @@ Points encore explicitement laisses configurables:
 ## Notes moteur
 
 - la boucle de jeu reste 100% locale
-- aucun backend, aucun compte, aucun paiement
+- seul l acces partage et la memoire des mains GTO utilisent le serveur Sites et D1
+- aucun compte joueur individuel, aucun paiement
 - les regles poker couvertes par les tests existants sont conservees
 - le hero humain n est pas un bot

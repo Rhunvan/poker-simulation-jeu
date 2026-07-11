@@ -2,6 +2,13 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 
 import type { BotProfile } from '../config/schema'
 import {
+  serializeCreateGtoHandRequest,
+  type GtoHandObservationInput,
+  type GtoHandListResponse,
+  type GtoHandRecord,
+  type GtoHandResponse,
+} from '../data/gtoHandRecords'
+import {
   HERO_ADVICE_ACTIONS,
   type HeroAdvice,
   type HeroAdviceAction,
@@ -25,6 +32,9 @@ interface RealTableGtoViewProps {
   profilesById: Record<string, BotProfile>
   onClose: () => void
 }
+
+type SavedHandsStatus = 'idle' | 'loading' | 'ready' | 'error'
+type SaveHandStatus = 'idle' | 'saving' | 'success' | 'error'
 
 const ACTION_LABELS: Record<HeroAdviceAction, string> = {
   fold: 'Se coucher',
@@ -122,12 +132,42 @@ function createDefaultSpot(table: TableState): RealTableSpotInput {
   }
 }
 
-function getActionText(advice: HeroAdvice): string {
+function getActionText(advice: Pick<HeroAdvice, 'recommendedAction' | 'suggestedTotal'>): string {
   const label = ACTION_LABELS[advice.recommendedAction]
   if (advice.suggestedTotal === undefined || advice.recommendedAction === 'all-in') {
     return label
   }
   return `${label} à ${formatAmount(advice.suggestedTotal)}`
+}
+
+function formatSavedDate(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return 'Date inconnue'
+  }
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
+function parseOptionalInteger(value: string): number | null | undefined {
+  if (value.trim() === '') {
+    return undefined
+  }
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && Number.isInteger(parsed) ? parsed : null
+}
+
+async function getResponseError(response: Response, fallback: string): Promise<string> {
+  try {
+    const payload = await response.json() as { error?: unknown }
+    return typeof payload.error === 'string' && payload.error ? payload.error : fallback
+  } catch {
+    return fallback
+  }
 }
 
 function getAlternative(advice: HeroAdvice): { action: HeroAdviceAction; percentage: number } | null {
@@ -245,9 +285,25 @@ export function RealTableGtoView({ open, table, profilesById, onClose }: RealTab
   const [analysis, setAnalysis] = useState<RealTableAnalysis | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [isDirty, setIsDirty] = useState(false)
+  const [savedHands, setSavedHands] = useState<GtoHandRecord[]>([])
+  const [savedHandCount, setSavedHandCount] = useState(0)
+  const [savedHandsStatus, setSavedHandsStatus] = useState<SavedHandsStatus>('idle')
+  const [savedHandsError, setSavedHandsError] = useState('')
+  const [savedHandsReloadKey, setSavedHandsReloadKey] = useState(0)
+  const [isSavedHandsOpen, setIsSavedHandsOpen] = useState(false)
+  const [deletingHandId, setDeletingHandId] = useState<string | null>(null)
+  const [saveStatus, setSaveStatus] = useState<SaveHandStatus>('idle')
+  const [saveError, setSaveError] = useState('')
+  const [lastSavedHandId, setLastSavedHandId] = useState<string | null>(null)
+  const [actualAction, setActualAction] = useState<HeroAdviceAction | ''>('')
+  const [actualAmount, setActualAmount] = useState('')
+  const [heroNet, setHeroNet] = useState('')
+  const [observationNote, setObservationNote] = useState('')
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const firstCardRef = useRef<HTMLSelectElement>(null)
   const resultRef = useRef<HTMLElement>(null)
+  const saveRequestInFlightRef = useRef(false)
+  const deleteRequestInFlightRef = useRef<string | null>(null)
   const requiredBoardCount = getRequiredBoardCount(draft.street)
   const usedCards = useMemo(
     () => new Set([...draft.heroCards, ...draft.board].filter((card): card is CardCode => card !== '')),
@@ -280,6 +336,48 @@ export function RealTableGtoView({ open, table, profilesById, onClose }: RealTab
     }
   }, [onClose, open])
 
+  useEffect(() => {
+    if (!open) {
+      return undefined
+    }
+
+    const controller = new AbortController()
+    setSavedHandsStatus('loading')
+    setSavedHandsError('')
+
+    void fetch('/api/gto-hands?limit=50', {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(await getResponseError(response, 'Impossible de charger les mains enregistrées.'))
+        }
+        return response.json() as Promise<GtoHandListResponse>
+      })
+      .then((payload) => {
+        if (!Array.isArray(payload.hands)) {
+          throw new Error('La liste des mains reçue est invalide.')
+        }
+        const hands = [...payload.hands].sort(
+          (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+        )
+        setSavedHands(hands)
+        setSavedHandCount(Number.isFinite(payload.count) ? payload.count : hands.length)
+        setSavedHandsStatus('ready')
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) {
+          return
+        }
+        setSavedHandsStatus('error')
+        setSavedHandsError(error instanceof Error ? error.message : 'Impossible de charger les mains enregistrées.')
+      })
+
+    return () => controller.abort()
+  }, [open, savedHandsReloadKey])
+
   if (!open) {
     return null
   }
@@ -287,6 +385,9 @@ export function RealTableGtoView({ open, table, profilesById, onClose }: RealTab
   const updateDraft = (patch: Partial<RealTableSpotInput>) => {
     setDraft((current) => ({ ...current, ...patch }))
     setErrors([])
+    setSaveStatus('idle')
+    setSaveError('')
+    setLastSavedHandId(null)
     if (analysis) {
       setIsDirty(true)
     }
@@ -336,6 +437,9 @@ export function RealTableGtoView({ open, table, profilesById, onClose }: RealTab
     if (result.analysis) {
       setAnalysis(result.analysis)
       setIsDirty(false)
+      setSaveStatus('idle')
+      setSaveError('')
+      setLastSavedHandId(null)
       requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' }))
     }
   }
@@ -363,7 +467,133 @@ export function RealTableGtoView({ open, table, profilesById, onClose }: RealTab
     setAnalysis(null)
     setErrors([])
     setIsDirty(false)
+    setSaveStatus('idle')
+    setSaveError('')
+    setLastSavedHandId(null)
+    setActualAction('')
+    setActualAmount('')
+    setHeroNet('')
+    setObservationNote('')
     requestAnimationFrame(() => firstCardRef.current?.focus())
+  }
+
+  const toggleSavedHands = () => {
+    const willOpen = !isSavedHandsOpen
+    setIsSavedHandsOpen(willOpen)
+    if (willOpen) {
+      requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' }))
+    }
+  }
+
+  const resumeSavedHand = (hand: GtoHandRecord) => {
+    const spot = structuredClone(hand.spot)
+    const result = analyzeRealTableSpot(spot, table.config, profilesById)
+    setDraft(spot)
+    setAnalysis(result.analysis)
+    setErrors(result.errors)
+    setIsDirty(false)
+    setActualAction(hand.actualAction ?? '')
+    setActualAmount(hand.actualAmount === undefined ? '' : String(hand.actualAmount))
+    setHeroNet(hand.heroNet === undefined ? '' : String(hand.heroNet))
+    setObservationNote(hand.note)
+    setLastSavedHandId(hand.id)
+    setSaveStatus('success')
+    setSaveError('')
+    setIsSavedHandsOpen(false)
+    requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' }))
+  }
+
+  const deleteSavedHand = async (handId: string) => {
+    if (deleteRequestInFlightRef.current !== null) {
+      return
+    }
+    deleteRequestInFlightRef.current = handId
+    setDeletingHandId(handId)
+    setSavedHandsError('')
+
+    try {
+      const response = await fetch(`/api/gto-hands/${encodeURIComponent(handId)}`, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      })
+      if (!response.ok) {
+        throw new Error(await getResponseError(response, 'La main n’a pas pu être supprimée.'))
+      }
+      setSavedHands((current) => current.filter((hand) => hand.id !== handId))
+      setSavedHandCount((current) => Math.max(0, current - 1))
+      if (lastSavedHandId === handId) {
+        setLastSavedHandId(null)
+        setSaveStatus('idle')
+      }
+    } catch (error: unknown) {
+      setSavedHandsError(error instanceof Error ? error.message : 'La main n’a pas pu être supprimée.')
+    } finally {
+      deleteRequestInFlightRef.current = null
+      setDeletingHandId(null)
+    }
+  }
+
+  const saveAnalyzedHand = async () => {
+    if (!analysis || isDirty || saveStatus === 'success' || saveRequestInFlightRef.current) {
+      return
+    }
+
+    const parsedActualAmount = parseOptionalInteger(actualAmount)
+    const parsedHeroNet = parseOptionalInteger(heroNet)
+    if (parsedActualAmount === null || (parsedActualAmount !== undefined && parsedActualAmount < 0)) {
+      setSaveStatus('error')
+      setSaveError('Le montant joué doit être un nombre entier positif.')
+      return
+    }
+    if (parsedHeroNet === null) {
+      setSaveStatus('error')
+      setSaveError('Le gain ou la perte doit être un nombre entier, par exemple -12000 ou 8000.')
+      return
+    }
+
+    const observation: GtoHandObservationInput = {
+      ...(actualAction ? { actualAction } : {}),
+      ...(parsedActualAmount === undefined ? {} : { actualAmount: parsedActualAmount }),
+      ...(parsedHeroNet === undefined ? {} : { heroNet: parsedHeroNet }),
+      ...(observationNote.trim() ? { note: observationNote.trim() } : {}),
+    }
+
+    saveRequestInFlightRef.current = true
+    setSaveStatus('saving')
+    setSaveError('')
+
+    try {
+      const response = await fetch('/api/gto-hands', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: serializeCreateGtoHandRequest(analysis.input, observation),
+      })
+      if (!response.ok) {
+        throw new Error(await getResponseError(response, 'La main n’a pas pu être enregistrée.'))
+      }
+      const payload = await response.json() as GtoHandResponse
+      if (!payload.hand?.id) {
+        throw new Error('La sauvegarde reçue est incomplète.')
+      }
+      const alreadyPresent = savedHands.some((hand) => hand.id === payload.hand.id)
+      setSavedHands((current) => [payload.hand, ...current.filter((hand) => hand.id !== payload.hand.id)])
+      if (!alreadyPresent) {
+        setSavedHandCount((current) => current + 1)
+      }
+      setLastSavedHandId(payload.hand.id)
+      setSaveStatus('success')
+      setSavedHandsStatus('ready')
+    } catch (error: unknown) {
+      setSaveStatus('error')
+      setSaveError(error instanceof Error ? error.message : 'La main n’a pas pu être enregistrée.')
+    } finally {
+      saveRequestInFlightRef.current = false
+    }
   }
 
   const resultProfiles = (analysis?.input.opponentIds ?? draft.opponentIds).flatMap((id) => {
@@ -397,6 +627,14 @@ export function RealTableGtoView({ open, table, profilesById, onClose }: RealTab
           <div className="real-gto-header-meta">
             <span>{table.config.smallBlind.toLocaleString()} / {table.config.bigBlind.toLocaleString()}</span>
             <span>{draft.opponentIds.length + 1} joueurs</span>
+            <button
+              type="button"
+              className={`real-gto-memory-toggle ${isSavedHandsOpen ? 'is-active' : ''}`}
+              aria-expanded={isSavedHandsOpen}
+              onClick={toggleSavedHands}
+            >
+              Mains enregistrées <strong>{savedHandsStatus === 'loading' ? '…' : savedHandCount}</strong>
+            </button>
             <button type="button" className="real-gto-new-hand" onClick={resetRealHand}>Nouvelle main</button>
             <button ref={closeButtonRef} type="button" className="real-gto-close" onClick={onClose}>← Simulation</button>
           </div>
@@ -510,6 +748,72 @@ export function RealTableGtoView({ open, table, profilesById, onClose }: RealTab
           </form>
 
           <main ref={resultRef} className="real-gto-result">
+            {isSavedHandsOpen ? (
+              <section className="real-gto-saved-panel" aria-labelledby="real-gto-saved-title">
+                <div className="real-gto-section-heading real-gto-saved-heading">
+                  <div>
+                    <span>Mémoire</span>
+                    <h3 id="real-gto-saved-title">Mains enregistrées</h3>
+                  </div>
+                  <p>{savedHandCount} main{savedHandCount > 1 ? 's' : ''} conservée{savedHandCount > 1 ? 's' : ''}</p>
+                </div>
+
+                {savedHandsError ? <p className="real-gto-saved-error" role="alert">{savedHandsError}</p> : null}
+
+                {savedHandsStatus === 'loading' ? (
+                  <div className="real-gto-saved-state" aria-live="polite">Chargement des mains…</div>
+                ) : null}
+
+                {savedHandsStatus === 'error' ? (
+                  <div className="real-gto-saved-state">
+                    <button type="button" onClick={() => setSavedHandsReloadKey((value) => value + 1)}>Réessayer</button>
+                  </div>
+                ) : null}
+
+                {savedHandsStatus === 'ready' && savedHands.length === 0 ? (
+                  <div className="real-gto-saved-state">
+                    <strong>Aucune main pour le moment.</strong>
+                    <span>Analyse un spot puis utilise « Enregistrer cette main ».</span>
+                  </div>
+                ) : null}
+
+                {savedHands.length > 0 ? (
+                  <div className="real-gto-saved-list">
+                    {savedHands.map((hand) => (
+                      <article className="real-gto-saved-row" key={hand.id}>
+                        <div className="real-gto-saved-cards" aria-label={`Cartes ${hand.spot.heroCards.map(formatCardCode).join(' ')}`}>
+                          {hand.spot.heroCards.map((card) => <span key={card || 'empty'}>{formatCardCode(card)}</span>)}
+                        </div>
+                        <div className="real-gto-saved-summary">
+                          <div>
+                            <strong>{STREET_LABELS[hand.spot.street]} · {getActionText(hand.adapted)}</strong>
+                            <time dateTime={hand.createdAt}>{formatSavedDate(hand.createdAt)}</time>
+                          </div>
+                          <small>
+                            Pot {formatAmount(hand.spot.pot)}
+                            {hand.actualAction ? ` · joué ${ACTION_LABELS[hand.actualAction]}` : ''}
+                            {hand.heroNet === undefined ? '' : ` · net ${hand.heroNet >= 0 ? '+' : ''}${formatAmount(hand.heroNet)}`}
+                          </small>
+                          {hand.note ? <p>{hand.note}</p> : null}
+                        </div>
+                        <div className="real-gto-saved-actions">
+                          <button type="button" className="is-resume" onClick={() => resumeSavedHand(hand)}>Reprendre</button>
+                          <button
+                            type="button"
+                            className="is-delete"
+                            disabled={deletingHandId !== null}
+                            aria-label={`Supprimer la main ${hand.spot.heroCards.map(formatCardCode).join(' ')}`}
+                            onClick={() => void deleteSavedHand(hand.id)}
+                          >
+                            {deletingHandId === hand.id ? '…' : 'Supprimer'}
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
             {analysis ? (
               <>
                 <section className="real-gto-decision" aria-labelledby="real-gto-decision-title" aria-live="polite" aria-atomic="true">
@@ -536,6 +840,99 @@ export function RealTableGtoView({ open, table, profilesById, onClose }: RealTab
                     <div><span>Marge</span><strong className={adaptedEdge >= 0 ? 'is-positive' : 'is-negative'}>{adaptedEdge >= 0 ? '+' : ''}{adaptedEdge.toFixed(1)} pts</strong></div>
                   </div>
                   {isDirty ? <p className="real-gto-dirty">Données modifiées — relance l’analyse pour mettre le conseil à jour.</p> : null}
+                </section>
+
+                <section className="real-gto-memory" aria-labelledby="real-gto-memory-title">
+                  <div className="real-gto-section-heading">
+                    <div>
+                      <span>Mémoire de table</span>
+                      <h3 id="real-gto-memory-title">Conserver cette main</h3>
+                    </div>
+                    <p>Les observations sont facultatives. Rien n’est sauvegardé automatiquement.</p>
+                  </div>
+
+                  <div className="real-gto-memory-grid">
+                    <label>
+                      <span>Action réellement jouée</span>
+                      <select
+                        value={actualAction}
+                        disabled={isDirty || saveStatus === 'saving' || saveStatus === 'success'}
+                        onChange={(event) => {
+                          setActualAction(event.target.value as HeroAdviceAction | '')
+                          setSaveStatus('idle')
+                          setSaveError('')
+                        }}
+                      >
+                        <option value="">Non renseignée</option>
+                        {HERO_ADVICE_ACTIONS.map((action) => <option key={action} value={action}>{ACTION_LABELS[action]}</option>)}
+                      </select>
+                    </label>
+                    <label>
+                      <span>Montant réellement joué</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        step="100"
+                        placeholder="Facultatif"
+                        value={actualAmount}
+                        disabled={isDirty || saveStatus === 'saving' || saveStatus === 'success'}
+                        onChange={(event) => {
+                          setActualAmount(event.target.value)
+                          setSaveStatus('idle')
+                          setSaveError('')
+                        }}
+                      />
+                    </label>
+                    <label>
+                      <span>Gain / perte net</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        step="100"
+                        placeholder="Ex. -12000 ou 8000"
+                        value={heroNet}
+                        disabled={isDirty || saveStatus === 'saving' || saveStatus === 'success'}
+                        onChange={(event) => {
+                          setHeroNet(event.target.value)
+                          setSaveStatus('idle')
+                          setSaveError('')
+                        }}
+                      />
+                    </label>
+                    <label className="real-gto-memory-note">
+                      <span>Note</span>
+                      <textarea
+                        rows={2}
+                        maxLength={2000}
+                        placeholder="Lecture, showdown, détail à retenir…"
+                        value={observationNote}
+                        disabled={isDirty || saveStatus === 'saving' || saveStatus === 'success'}
+                        onChange={(event) => {
+                          setObservationNote(event.target.value)
+                          setSaveStatus('idle')
+                          setSaveError('')
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {saveStatus === 'error' ? <p className="real-gto-memory-error" role="alert">{saveError}</p> : null}
+                  {saveStatus === 'success' ? (
+                    <p className="real-gto-memory-success" role="status">Main enregistrée. Elle reste consultable dans « Mains enregistrées ».</p>
+                  ) : null}
+                  {isDirty ? <p className="real-gto-memory-hint">Relance l’analyse avant d’enregistrer ce spot modifié.</p> : null}
+
+                  <div className="real-gto-memory-footer">
+                    <small>Cette mémoire n’ajuste jamais automatiquement les profils ni le conseil GTO.</small>
+                    <button
+                      type="button"
+                      disabled={isDirty || saveStatus === 'saving' || saveStatus === 'success'}
+                      onClick={() => void saveAnalyzedHand()}
+                    >
+                      {saveStatus === 'saving' ? 'Enregistrement…' : saveStatus === 'success' ? 'Main enregistrée' : 'Enregistrer cette main'}
+                    </button>
+                  </div>
                 </section>
 
                 <AdviceComparison analysis={analysis} />
