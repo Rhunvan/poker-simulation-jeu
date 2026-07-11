@@ -34,7 +34,7 @@ export const REAL_TABLE_RULES: TableRules = {
   oddChipRule: 'first-left-of-dealer',
   blindProgression: 'static',
   straddle: {
-    enabled: true,
+    enabled: false,
     amount: 2_000,
     label: 'Option',
   },

@@ -26,7 +26,7 @@ describe('config loading', () => {
     ])
     expect(tableConfig.startingStack).toBe(40_000)
     expect(tableConfig.buyInDefault).toBe(40_000)
-    expect(tableConfig.straddle).toMatchObject({ enabled: true, amount: 2_000, label: 'Option' })
+    expect(tableConfig.straddle).toMatchObject({ enabled: false, amount: 2_000, label: 'Option' })
     expect(tableConfig.rebuy).toMatchObject({
       defaultAmount: 40_000,
       maxStackFraction: 0.5,

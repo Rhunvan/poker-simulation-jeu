@@ -253,6 +253,20 @@ export const usePokerStore = create<PokerStoreState>()(
     }),
     {
       name: 'local-poker-table-state-v5-configurable-lineup-gto',
+      version: 1,
+      migrate: (persistedState) => {
+        const persisted = persistedState as Partial<PokerStoreState>
+        const activeProfileIds = sanitizeProfileIds(persisted.activeProfileIds ?? defaultActiveProfileIds)
+
+        return {
+          ...persisted,
+          table: resetTableState(tableConfig, getProfilesForLineup(activeProfileIds), Date.now()),
+          activeProfileIds,
+          isPaused: false,
+          speed: 1,
+          lastClockSyncAt: Date.now(),
+        }
+      },
       merge: (persistedState, currentState) => {
         const persisted = persistedState as Partial<PokerStoreState>
         const persistedTable = persisted.table
