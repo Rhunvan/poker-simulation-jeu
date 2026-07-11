@@ -2947,12 +2947,23 @@ input:focus-visible {
   }
 
   .hero-hand-preview {
+    width: 100%;
+    position: relative;
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 9px 10px;
+    border: 1px solid rgba(232, 207, 137, 0.2);
     border-radius: 11px;
     background: rgba(255, 255, 255, 0.035);
+    color: #f6f3eb;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .hero-hand-preview:active {
+    border-color: rgba(238, 215, 151, 0.7);
+    background: rgba(232, 207, 137, 0.1);
   }
 
   .hero-preview-cards {
@@ -2970,7 +2981,8 @@ input:focus-visible {
     margin-left: -5px;
   }
 
-  .hero-hand-preview > div:last-child {
+  .hero-hand-copy {
+    min-width: 0;
     display: grid;
     gap: 3px;
   }
@@ -2983,6 +2995,20 @@ input:focus-visible {
 
   .hero-hand-preview strong {
     font-size: 15px;
+  }
+
+  .hero-hand-copy small {
+    color: #dfc77e;
+    font-size: 9px;
+    line-height: 1.25;
+  }
+
+  .hero-hand-chevron {
+    margin-left: auto;
+    color: #e5ce88 !important;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 28px !important;
+    line-height: 1;
   }
 
   .hero-metrics {

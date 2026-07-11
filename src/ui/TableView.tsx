@@ -99,6 +99,7 @@ export function TableView({
   const [isSessionStatsOpen, setIsSessionStatsOpen] = useState(false)
   const [isLineupOpen, setIsLineupOpen] = useState(false)
   const [isRealGtoOpen, setIsRealGtoOpen] = useState(false)
+  const [openFirstGtoCardPicker, setOpenFirstGtoCardPicker] = useState(false)
   const [isSeatDebugEnabled, setIsSeatDebugEnabled] = useState(false)
   const level = getCurrentBlindLevel(table)
   const hero = table.players.find((player) => player.id === 'hero') ?? null
@@ -161,7 +162,14 @@ export function TableView({
             <button type="button" className="control-primary" onClick={onPauseToggle}>
               {isPaused ? 'Reprendre' : 'Pause'}
             </button>
-            <button type="button" className="real-gto-trigger" onClick={() => setIsRealGtoOpen(true)}>
+            <button
+              type="button"
+              className="real-gto-trigger"
+              onClick={() => {
+                setOpenFirstGtoCardPicker(false)
+                setIsRealGtoOpen(true)
+              }}
+            >
               GTO table réelle
             </button>
             <button type="button" className="control-secondary" onClick={() => setIsSessionStatsOpen(true)}>
@@ -198,7 +206,17 @@ export function TableView({
 
         <div className="workspace">
           <aside className="decision-rail" aria-label="Décision du Hero">
-            {hero && <HeroActionPanel table={table} hero={hero} onAction={onHeroAction} />}
+            {hero && (
+              <HeroActionPanel
+                table={table}
+                hero={hero}
+                onAction={onHeroAction}
+                onEditGtoHand={() => {
+                  setOpenFirstGtoCardPicker(true)
+                  setIsRealGtoOpen(true)
+                }}
+              />
+            )}
           </aside>
 
           <section className="table-panel">
@@ -371,9 +389,13 @@ export function TableView({
       <RealTableGtoView
         key={table.players.map((player) => player.id).join(':')}
         open={isRealGtoOpen}
+        openFirstCardPicker={openFirstGtoCardPicker}
         table={table}
         profilesById={botProfiles}
-        onClose={() => setIsRealGtoOpen(false)}
+        onClose={() => {
+          setIsRealGtoOpen(false)
+          setOpenFirstGtoCardPicker(false)
+        }}
       />
     </div>
   )

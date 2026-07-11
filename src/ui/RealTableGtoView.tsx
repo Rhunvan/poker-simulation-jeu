@@ -28,6 +28,7 @@ import './realTableGto.css'
 
 interface RealTableGtoViewProps {
   open: boolean
+  openFirstCardPicker?: boolean
   table: TableState
   profilesById: Record<string, BotProfile>
   onClose: () => void
@@ -194,6 +195,7 @@ function CardPicker({
   value,
   usedCards,
   inputRef,
+  initiallyOpen = false,
   onChange,
 }: {
   id: string
@@ -201,14 +203,15 @@ function CardPicker({
   value: CardCode | ''
   usedCards: Set<CardCode>
   inputRef?: React.RefObject<HTMLButtonElement | null>
+  initiallyOpen?: boolean
   onChange: (value: CardCode | '') => void
 }) {
   const ownTriggerRef = useRef<HTMLButtonElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const triggerRef = inputRef ?? ownTriggerRef
-  const [isOpen, setIsOpen] = useState(false)
-  const [pendingRank, setPendingRank] = useState<Rank | null>(null)
-  const [pendingSuit, setPendingSuit] = useState<Suit | null>(null)
+  const [isOpen, setIsOpen] = useState(initiallyOpen)
+  const [pendingRank, setPendingRank] = useState<Rank | null>(initiallyOpen && value ? value[0] as Rank : null)
+  const [pendingSuit, setPendingSuit] = useState<Suit | null>(initiallyOpen && value ? value[1] as Suit : null)
   const selectedSuit = value ? value[1] as Suit : null
   const pendingCard = pendingRank && pendingSuit ? `${pendingRank}${pendingSuit}` as CardCode : null
   const isDuplicate = pendingCard !== null && usedCards.has(pendingCard) && pendingCard !== value
@@ -425,7 +428,7 @@ function AdviceComparison({ analysis }: { analysis: RealTableAnalysis }) {
   )
 }
 
-export function RealTableGtoView({ open, table, profilesById, onClose }: RealTableGtoViewProps) {
+export function RealTableGtoView({ open, openFirstCardPicker = false, table, profilesById, onClose }: RealTableGtoViewProps) {
   const [draft, setDraft] = useState<RealTableSpotInput>(() => createDefaultSpot(table))
   const [analysis, setAnalysis] = useState<RealTableAnalysis | null>(null)
   const [errors, setErrors] = useState<string[]>([])
@@ -798,7 +801,7 @@ export function RealTableGtoView({ open, table, profilesById, onClose }: RealTab
             <fieldset className="real-gto-fieldset">
               <legend>1. Ta main et la street</legend>
               <div className="real-gto-card-grid real-gto-card-grid-hero">
-                <CardPicker id="real-hero-card-1" label="Carte 1" value={draft.heroCards[0]} usedCards={usedCards} inputRef={firstCardRef} onChange={(value) => updateCard('hero', 0, value)} />
+                <CardPicker id="real-hero-card-1" label="Carte 1" value={draft.heroCards[0]} usedCards={usedCards} inputRef={firstCardRef} initiallyOpen={openFirstCardPicker} onChange={(value) => updateCard('hero', 0, value)} />
                 <CardPicker id="real-hero-card-2" label="Carte 2" value={draft.heroCards[1]} usedCards={usedCards} onChange={(value) => updateCard('hero', 1, value)} />
               </div>
               <div className="real-gto-choice-grid real-gto-choice-grid-street" role="radiogroup" aria-label="Street">

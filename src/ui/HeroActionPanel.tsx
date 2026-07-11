@@ -10,6 +10,7 @@ interface HeroActionPanelProps {
   table: TableState
   hero: TablePlayer
   onAction: (command: PlayerCommand) => void
+  onEditGtoHand: () => void
 }
 
 const ACTION_LABELS: Record<HeroAdviceAction, string> = {
@@ -39,7 +40,7 @@ function formatStreet(street: TableState['street']): string {
   return street === 'preflop' ? 'Préflop' : street.charAt(0).toUpperCase() + street.slice(1)
 }
 
-export function HeroActionPanel({ table, hero, onAction }: HeroActionPanelProps) {
+export function HeroActionPanel({ table, hero, onAction, onEditGtoHand }: HeroActionPanelProps) {
   const legal = useMemo(() => getLegalActions(table, hero.id), [table, hero.id])
   const advice = useMemo(() => getHeroAdvice(table, botProfilesById, hero.id), [table, hero.id])
   const raiseOption = legal?.options.find((option) => option.kind === 'bet' || option.kind === 'raise') ?? null
@@ -115,17 +116,24 @@ export function HeroActionPanel({ table, hero, onAction }: HeroActionPanelProps)
         </div>
       </div>
 
-      <div className="hero-hand-preview" aria-label="Cartes du Hero">
+      <button
+        type="button"
+        className="hero-hand-preview"
+        onClick={onEditGtoHand}
+        aria-label="Choisir ma main pour le GTO"
+      >
         <div className="hero-preview-cards">
           {hero.holeCards.map((card) => (
             <PlayingCard key={`hero-preview-${card.code}`} card={card} className="hero-preview-card" />
           ))}
         </div>
-        <div>
+        <div className="hero-hand-copy">
           <span>Ta main</span>
           <strong>{hero.holeCards.map((card) => card.code).join(' · ')}</strong>
+          <small>Appuie pour choisir ta main GTO</small>
         </div>
-      </div>
+        <span className="hero-hand-chevron" aria-hidden="true">›</span>
+      </button>
 
       <div className="hero-metrics">
         <div className="hero-metric">
