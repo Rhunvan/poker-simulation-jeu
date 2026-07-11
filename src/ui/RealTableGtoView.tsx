@@ -101,14 +101,25 @@ function midpoint(range: [number, number]): number {
   return Math.round((range[0] + range[1]) / 2)
 }
 
-function getActiveOpponentIds(table: TableState): string[] {
+function getConfiguredOpponentIds(table: TableState): string[] {
   return table.players
     .filter((player) => player.kind === 'bot')
     .map((player) => player.botProfileId ?? player.id)
 }
 
+function getDefaultOpponentIds(table: TableState): string[] {
+  const configuredIds = getConfiguredOpponentIds(table)
+  if (!table.handInProgress) {
+    return configuredIds
+  }
+  const stillInHand = table.players
+    .filter((player) => player.kind === 'bot' && !player.hasFolded && !player.isSittingOut)
+    .map((player) => player.botProfileId ?? player.id)
+  return stillInHand.length > 0 ? stillInHand : configuredIds
+}
+
 function createDefaultSpot(table: TableState): RealTableSpotInput {
-  const opponentIds = getActiveOpponentIds(table)
+  const opponentIds = getDefaultOpponentIds(table)
   const optionAmount = table.config.straddle?.enabled ? table.config.straddle.amount : 0
   const openingPot = table.config.smallBlind + table.config.bigBlind + optionAmount
   const preferredActor = opponentIds.includes('david') ? 'david' : (opponentIds[0] ?? '')
@@ -458,7 +469,7 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
     [draft.board, draft.heroCards],
   )
   const availableProfiles = useMemo(
-    () => getActiveOpponentIds(table).flatMap((id) => {
+    () => getConfiguredOpponentIds(table).flatMap((id) => {
       const profile = profilesById[id]
       return profile ? [profile] : []
     }),

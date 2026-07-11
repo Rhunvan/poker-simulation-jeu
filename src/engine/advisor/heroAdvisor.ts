@@ -355,6 +355,37 @@ function isAggressiveAction(action: PlayerLastAction | null, street: TableState[
   return action.kind === 'bet' || action.kind === 'raise' || action.kind === 'all-in'
 }
 
+function looseAggressorAdjustment(opponent: PublicOpponent, street: TableState['street']): number {
+  if (!isAggressiveAction(opponent.lastAction, street) || !opponent.profile) {
+    return 0
+  }
+
+  const profile = opponent.profile
+  const vpip = rangeMid(profile.targetStats.vpip)
+  const pfr = rangeMid(profile.targetStats.pfr)
+  const bluff = rangeMid(profile.targetStats.bluff)
+  return clamp(
+    Math.max(0, vpip - 0.32) * 0.45 +
+      Math.max(0, pfr - 0.25) * 0.2 +
+      Math.max(0, bluff - 0.14) * 0.65 +
+      (profile.quirks?.kamikazeBursts ? 0.08 : 0),
+    0,
+    0.38,
+  )
+}
+
+function getLooseAggressorAdjustment(
+  opponents: PublicOpponent[],
+  street: TableState['street'],
+): number {
+  const adjustments = opponents
+    .map((opponent) => looseAggressorAdjustment(opponent, street))
+    .filter((adjustment) => adjustment > 0)
+  return adjustments.length === 0
+    ? 0
+    : adjustments.reduce((sum, adjustment) => sum + adjustment, 0) / adjustments.length
+}
+
 function preflopRangePreference(cards: Card[], opponent: PublicOpponent, street: TableState['street']): number {
   const strength = preflopCardStrength(cards).strength
   const profile = opponent.profile
@@ -617,6 +648,7 @@ function buildPreflopScores(
   tableModel: TableModel,
   opponentCount: number,
   raiseCount: number,
+  opponents: PublicOpponent[],
 ): Partial<Record<HeroAdviceAction, number>> {
   const scores = createActionScores(legal)
   const multiwayTax = Math.max(0, opponentCount - 1) * 0.025
@@ -624,6 +656,7 @@ function buildPreflopScores(
   const openingThreshold =
     0.51 - position.score * 0.14 - tableModel.foldability * 0.06 + tableModel.calling * 0.055 + multiwayTax
   const pressureTax = clamp(potOdds * 0.5, 0, 0.3)
+  const looseAggressorDiscount = getLooseAggressorAdjustment(opponents, 'preflop')
 
   if (legal.toCall === 0) {
     setScore(
@@ -672,6 +705,25 @@ function buildPreflopScores(
       const bluffRaise =
         tableModel.foldability * position.score * heroHand.playability * 0.34 * (1 - tableModel.calling * 0.75)
       setScore(scores, 'raise', 0.015 + valueRaise + bluffRaise)
+
+      if (looseAggressorDiscount > 0) {
+        const strongResponse = clamp((heroHand.preflopStrength - 0.5) / 0.3, 0, 1)
+        setScore(
+          scores,
+          'fold',
+          (scores.fold ?? 0.001) - looseAggressorDiscount * (0.9 + strongResponse * 0.6),
+        )
+        setScore(
+          scores,
+          'call',
+          (scores.call ?? 0.001) + looseAggressorDiscount * (0.9 + heroHand.playability * 0.4),
+        )
+        setScore(
+          scores,
+          'raise',
+          (scores.raise ?? 0.001) + looseAggressorDiscount * strongResponse * 1.2,
+        )
+      }
     }
   }
 
@@ -905,8 +957,9 @@ function buildReasons(
   potOdds: number,
   position: PositionModel,
   tableModel: TableModel,
-  opponentCount: number,
+  opponents: PublicOpponent[],
 ): string[] {
+  const opponentCount = opponents.length
   const reasons = [
     `Equite estimee a ${round(equity * 100, 1)} % contre ${opponentCount} adversaire${opponentCount > 1 ? 's' : ''}.`,
   ]
@@ -918,6 +971,18 @@ function buildReasons(
     )
   } else {
     reasons.push('Aucun montant a payer immediatement : check et mise sont compares sans cout de call.')
+  }
+
+  if (table.street === 'preflop') {
+    const looseAggressor = opponents
+      .map((opponent) => ({ opponent, adjustment: looseAggressorAdjustment(opponent, table.street) }))
+      .filter((entry) => entry.adjustment >= 0.08)
+      .sort((left, right) => right.adjustment - left.adjustment)[0]
+    if (looseAggressor?.opponent.profile) {
+      reasons.push(
+        `${looseAggressor.opponent.profile.displayName} relance tres large et surbluffe : sa pression est modelisee avec une range plus faible qu'une relance standard.`,
+      )
+    }
   }
 
   if (tableModel.calling >= 0.48 || tableModel.looseness >= 0.45) {
@@ -1000,6 +1065,7 @@ export function getHeroAdvice(
           tableModel,
           opponents.length,
           table.fullRaiseCounter,
+          opponents,
         )
       : buildPostflopScores(
           table,
@@ -1041,7 +1107,7 @@ export function getHeroAdvice(
       potOdds,
       position,
       tableModel,
-      opponents.length,
+      opponents,
     ),
     disclaimer: DISCLAIMER,
   }

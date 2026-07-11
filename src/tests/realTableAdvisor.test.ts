@@ -71,4 +71,27 @@ describe('real table advisor', () => {
     expect(result.analysis).toBeNull()
     expect(result.errors).toContain('Le montant à payer ne peut pas dépasser ton stack.')
   })
+
+  it('does not fold AKo heads-up against Gerard wide preflop aggression', () => {
+    const result = analyzeRealTableSpot(
+      makeSpot({
+        heroCards: ['As', 'Kc'],
+        pot: 17_900,
+        toCall: 10_400,
+        opponentIds: ['gerard'],
+        pressureType: 'raise',
+        pressureActorId: 'gerard',
+      }),
+      tableConfig,
+      botProfilesById,
+    )
+
+    expect(result.errors).toEqual([])
+    expect(result.analysis?.adapted.recommendedAction).not.toBe('fold')
+    expect(result.analysis?.adapted.equity).toBeGreaterThan(result.analysis?.adapted.potOdds ?? 100)
+    expect(result.analysis?.adapted.actionMix.fold ?? 100).toBeLessThan(
+      result.analysis?.theoretical.actionMix.fold ?? 0,
+    )
+    expect(result.analysis?.adapted.reasons.some((reason) => reason.includes('Gérard'))).toBe(true)
+  })
 })
