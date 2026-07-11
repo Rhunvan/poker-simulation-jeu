@@ -82,12 +82,7 @@ const PROFILE_ADJUSTMENTS: Record<string, string> = {
 const RANKS: Rank[] = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']
 const SUITS: Suit[] = ['s', 'h', 'd', 'c']
 const SUIT_SYMBOLS: Record<Suit, string> = { s: '♠', h: '♥', d: '♦', c: '♣' }
-const CARD_OPTIONS = RANKS.flatMap((rank) =>
-  SUITS.map((suit) => ({
-    value: `${rank}${suit}` as CardCode,
-    label: `${rank === 'T' ? '10' : rank}${SUIT_SYMBOLS[suit]}`,
-  })),
-)
+const SUIT_LABELS: Record<Suit, string> = { s: 'Pique', h: 'Cœur', d: 'Carreau', c: 'Trèfle' }
 
 function formatAmount(amount: number): string {
   return amount.toLocaleString('fr-FR')
@@ -193,7 +188,7 @@ function getDeltaSummary(analysis: RealTableAnalysis): string {
   return 'L’action reste la même; les fréquences sont ajustées à la capacité réelle de cette table à suivre ou bluffer.'
 }
 
-function CardSelect({
+function CardPicker({
   id,
   label,
   value,
@@ -205,26 +200,176 @@ function CardSelect({
   label: string
   value: CardCode | ''
   usedCards: Set<CardCode>
-  inputRef?: React.RefObject<HTMLSelectElement | null>
+  inputRef?: React.RefObject<HTMLButtonElement | null>
   onChange: (value: CardCode | '') => void
 }) {
+  const ownTriggerRef = useRef<HTMLButtonElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const triggerRef = inputRef ?? ownTriggerRef
+  const [isOpen, setIsOpen] = useState(false)
+  const [pendingRank, setPendingRank] = useState<Rank | null>(null)
+  const [pendingSuit, setPendingSuit] = useState<Suit | null>(null)
+  const selectedSuit = value ? value[1] as Suit : null
+  const pendingCard = pendingRank && pendingSuit ? `${pendingRank}${pendingSuit}` as CardCode : null
+  const isDuplicate = pendingCard !== null && usedCards.has(pendingCard) && pendingCard !== value
+  const dialogTitleId = `${id}-picker-title`
+  const dialogHelpId = `${id}-picker-help`
+
+  function openPicker() {
+    setPendingRank(value ? value[0] as Rank : null)
+    setPendingSuit(value ? value[1] as Suit : null)
+    setIsOpen(true)
+  }
+
+  function closePicker() {
+    setIsOpen(false)
+    requestAnimationFrame(() => triggerRef.current?.focus())
+  }
+
+  function confirmCard() {
+    if (!pendingCard || isDuplicate) {
+      return
+    }
+    onChange(pendingCard)
+    closePicker()
+  }
+
+  useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setIsOpen(false)
+        requestAnimationFrame(() => triggerRef.current?.focus())
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    requestAnimationFrame(() => closeButtonRef.current?.focus())
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, triggerRef])
+
   return (
-    <label className="real-gto-card-field" htmlFor={id}>
-      <span>{label}</span>
-      <select
-        ref={inputRef}
+    <div className="real-gto-card-field">
+      <span id={`${id}-label`}>{label}</span>
+      <button
+        ref={triggerRef}
         id={id}
-        value={value}
-        onChange={(event) => onChange(event.target.value as CardCode | '')}
+        type="button"
+        className={`real-gto-card-trigger ${value ? 'is-set' : 'is-empty'}`}
+        onClick={openPicker}
+        aria-labelledby={`${id}-label ${id}-instruction`}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
       >
-        <option value="">—</option>
-        {CARD_OPTIONS.map((card) => (
-          <option key={card.value} value={card.value} disabled={usedCards.has(card.value) && card.value !== value}>
-            {card.label}
-          </option>
-        ))}
-      </select>
-    </label>
+        <span className={`real-gto-card-face ${selectedSuit === 'h' || selectedSuit === 'd' ? 'is-red' : ''}`} aria-hidden="true">
+          {value ? (
+            <>
+              <strong>{value[0] === 'T' ? '10' : value[0]}</strong>
+              <i>{SUIT_SYMBOLS[selectedSuit as Suit]}</i>
+            </>
+          ) : (
+            <strong>+</strong>
+          )}
+        </span>
+        <span className="real-gto-card-trigger-copy" id={`${id}-instruction`}>
+          <strong>{value ? formatCardCode(value) : 'Choisir une carte'}</strong>
+          <small>{value ? 'Appuie pour changer' : 'Appuie ici'}</small>
+        </span>
+      </button>
+
+      {isOpen ? (
+        <div
+          className="real-gto-card-picker-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closePicker()
+            }
+          }}
+        >
+          <section
+            className="real-gto-card-picker-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={dialogTitleId}
+            aria-describedby={dialogHelpId}
+          >
+            <header>
+              <div>
+                <span className="real-gto-picker-kicker">Ta main</span>
+                <h3 id={dialogTitleId}>Choisir {label.toLowerCase()}</h3>
+              </div>
+              <button ref={closeButtonRef} type="button" className="real-gto-picker-close" onClick={closePicker} aria-label="Fermer le choix de carte">
+                ×
+              </button>
+            </header>
+
+            <p id={dialogHelpId}>Choisis d’abord la valeur, puis la couleur.</p>
+
+            <div className={`real-gto-picker-preview ${pendingSuit === 'h' || pendingSuit === 'd' ? 'is-red' : ''}`} aria-live="polite">
+              <strong>{pendingRank ? (pendingRank === 'T' ? '10' : pendingRank) : '?'}</strong>
+              <i>{pendingSuit ? SUIT_SYMBOLS[pendingSuit] : '♠'}</i>
+            </div>
+
+            <div className="real-gto-picker-group">
+              <h4>1. Valeur</h4>
+              <div className="real-gto-rank-grid">
+                {RANKS.map((rank) => (
+                  <button
+                    key={rank}
+                    type="button"
+                    className={pendingRank === rank ? 'is-selected' : ''}
+                    onClick={() => setPendingRank(rank)}
+                    aria-pressed={pendingRank === rank}
+                  >
+                    {rank === 'T' ? '10' : rank}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="real-gto-picker-group">
+              <h4>2. Couleur</h4>
+              <div className="real-gto-suit-grid">
+                {SUITS.map((suit) => (
+                  <button
+                    key={suit}
+                    type="button"
+                    className={`${pendingSuit === suit ? 'is-selected' : ''} ${suit === 'h' || suit === 'd' ? 'is-red' : ''}`}
+                    onClick={() => setPendingSuit(suit)}
+                    aria-pressed={pendingSuit === suit}
+                  >
+                    <strong>{SUIT_SYMBOLS[suit]}</strong>
+                    <span>{SUIT_LABELS[suit]}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {isDuplicate ? <p className="real-gto-picker-error" role="alert">Cette carte est déjà utilisée dans le coup.</p> : null}
+
+            <footer>
+              {value ? (
+                <button
+                  type="button"
+                  className="real-gto-picker-clear"
+                  onClick={() => {
+                    onChange('')
+                    closePicker()
+                  }}
+                >
+                  Effacer
+                </button>
+              ) : <span />}
+              <button type="button" className="real-gto-picker-confirm" onClick={confirmCard} disabled={!pendingCard || isDuplicate}>
+                {pendingCard && !isDuplicate ? `Choisir ${formatCardCode(pendingCard)}` : 'Choisir cette carte'}
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+    </div>
   )
 }
 
@@ -300,7 +445,7 @@ export function RealTableGtoView({ open, table, profilesById, onClose }: RealTab
   const [heroNet, setHeroNet] = useState('')
   const [observationNote, setObservationNote] = useState('')
   const closeButtonRef = useRef<HTMLButtonElement>(null)
-  const firstCardRef = useRef<HTMLSelectElement>(null)
+  const firstCardRef = useRef<HTMLButtonElement>(null)
   const resultRef = useRef<HTMLElement>(null)
   const saveRequestInFlightRef = useRef(false)
   const deleteRequestInFlightRef = useRef<string | null>(null)
@@ -653,8 +798,8 @@ export function RealTableGtoView({ open, table, profilesById, onClose }: RealTab
             <fieldset className="real-gto-fieldset">
               <legend>1. Ta main et la street</legend>
               <div className="real-gto-card-grid real-gto-card-grid-hero">
-                <CardSelect id="real-hero-card-1" label="Carte 1" value={draft.heroCards[0]} usedCards={usedCards} inputRef={firstCardRef} onChange={(value) => updateCard('hero', 0, value)} />
-                <CardSelect id="real-hero-card-2" label="Carte 2" value={draft.heroCards[1]} usedCards={usedCards} onChange={(value) => updateCard('hero', 1, value)} />
+                <CardPicker id="real-hero-card-1" label="Carte 1" value={draft.heroCards[0]} usedCards={usedCards} inputRef={firstCardRef} onChange={(value) => updateCard('hero', 0, value)} />
+                <CardPicker id="real-hero-card-2" label="Carte 2" value={draft.heroCards[1]} usedCards={usedCards} onChange={(value) => updateCard('hero', 1, value)} />
               </div>
               <div className="real-gto-choice-grid real-gto-choice-grid-street" role="radiogroup" aria-label="Street">
                 {(Object.keys(STREET_LABELS) as RealTableStreet[]).map((street) => (
@@ -666,7 +811,7 @@ export function RealTableGtoView({ open, table, profilesById, onClose }: RealTab
               {requiredBoardCount > 0 ? (
                 <div className="real-gto-card-grid real-gto-board-grid">
                   {Array.from({ length: requiredBoardCount }, (_, index) => (
-                    <CardSelect key={index} id={`real-board-card-${index + 1}`} label={`Board ${index + 1}`} value={draft.board[index]} usedCards={usedCards} onChange={(value) => updateCard('board', index, value)} />
+                    <CardPicker key={index} id={`real-board-card-${index + 1}`} label={`Board ${index + 1}`} value={draft.board[index]} usedCards={usedCards} onChange={(value) => updateCard('board', index, value)} />
                   ))}
                 </div>
               ) : null}

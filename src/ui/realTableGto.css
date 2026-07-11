@@ -316,14 +316,301 @@
   color: #f4f0e6;
 }
 
-.real-gto-card-field select {
-  min-height: 54px;
-  padding: 7px 12px;
-  border-color: rgba(232, 207, 137, 0.26);
-  background: linear-gradient(180deg, rgba(238, 220, 171, 0.1), rgba(255, 255, 255, 0.035));
+.real-gto-card-trigger {
+  width: 100%;
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid rgba(232, 207, 137, 0.28);
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(238, 220, 171, 0.11), rgba(255, 255, 255, 0.035));
+  color: #f4f0e6;
+  text-align: left;
+  cursor: pointer;
+}
+
+.real-gto-card-trigger:hover {
+  border-color: rgba(238, 215, 151, 0.56);
+  background: linear-gradient(180deg, rgba(238, 220, 171, 0.17), rgba(255, 255, 255, 0.055));
+}
+
+.real-gto-card-trigger.is-empty {
+  border-style: dashed;
+}
+
+.real-gto-card-face {
+  width: 45px;
+  height: 57px;
+  flex: 0 0 auto;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  border: 1px solid rgba(28, 31, 27, 0.2);
+  border-radius: 7px;
+  background: #f5f1e7;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.24);
+  color: #121713;
   font-family: Georgia, 'Times New Roman', serif;
+  line-height: 0.82;
+}
+
+.real-gto-card-face strong {
+  font-size: 22px;
+}
+
+.real-gto-card-face i {
   font-size: 20px;
+  font-style: normal;
+}
+
+.real-gto-card-face.is-red,
+.real-gto-picker-preview.is-red,
+.real-gto-suit-grid button.is-red {
+  color: #a52c2c;
+}
+
+.real-gto-card-trigger.is-empty .real-gto-card-face {
+  border: 1px dashed rgba(27, 34, 28, 0.36);
+  background: rgba(245, 241, 231, 0.82);
+  color: #4c554d;
+}
+
+.real-gto-card-trigger-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.real-gto-card-trigger-copy strong {
+  overflow: hidden;
+  color: #f3e4b5;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.real-gto-card-trigger-copy small {
+  color: rgba(244, 240, 230, 0.55);
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+.real-gto-board-grid .real-gto-card-trigger {
+  min-height: 66px;
+  gap: 6px;
+  padding: 6px;
+}
+
+.real-gto-board-grid .real-gto-card-face {
+  width: 37px;
+  height: 50px;
+}
+
+.real-gto-board-grid .real-gto-card-trigger-copy strong {
+  font-size: 12px;
+}
+
+.real-gto-card-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(2, 4, 3, 0.84);
+  backdrop-filter: blur(12px);
+}
+
+.real-gto-card-picker-sheet {
+  width: min(520px, 100%);
+  max-height: min(760px, calc(100dvh - 32px));
+  overflow-y: auto;
+  padding: 20px;
+  border: 1px solid rgba(238, 215, 154, 0.22);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(218, 190, 116, 0.12), transparent 30%),
+    #101712;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.62);
+}
+
+.real-gto-card-picker-sheet > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.real-gto-card-picker-sheet h3 {
+  margin: 2px 0 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.real-gto-picker-kicker {
+  color: #d6bd73;
+  font-size: 9px;
   font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.real-gto-picker-close {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(239, 219, 166, 0.16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.045);
+  color: #f4f0e6;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.real-gto-card-picker-sheet > p {
+  margin: 8px 0 13px;
+  color: rgba(244, 240, 230, 0.58);
+  font-size: 12px;
+}
+
+.real-gto-picker-preview {
+  width: 68px;
+  height: 88px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  margin: 0 auto 16px;
+  border-radius: 10px;
+  background: #f6f2e8;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.34);
+  color: #111713;
+  font-family: Georgia, 'Times New Roman', serif;
+  line-height: 0.82;
+}
+
+.real-gto-picker-preview strong {
+  font-size: 31px;
+}
+
+.real-gto-picker-preview i {
+  font-size: 28px;
+  font-style: normal;
+}
+
+.real-gto-picker-group + .real-gto-picker-group {
+  margin-top: 14px;
+}
+
+.real-gto-picker-group h4 {
+  margin: 0 0 7px;
+  color: rgba(244, 240, 230, 0.68);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.real-gto-rank-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.real-gto-rank-grid button,
+.real-gto-suit-grid button {
+  min-height: 48px;
+  border: 1px solid rgba(241, 224, 181, 0.13);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.045);
+  color: #f4f0e6;
+  cursor: pointer;
+}
+
+.real-gto-rank-grid button {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.real-gto-rank-grid button.is-selected,
+.real-gto-suit-grid button.is-selected {
+  border-color: #e5ca7e;
+  background: #e1c574;
+  box-shadow: 0 0 0 2px rgba(225, 197, 116, 0.15);
+  color: #15150f;
+}
+
+.real-gto-suit-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.real-gto-suit-grid button {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 2px;
+}
+
+.real-gto-suit-grid button strong {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.real-gto-suit-grid button span {
+  font-size: 9px;
+}
+
+.real-gto-picker-error {
+  margin: 11px 0 0 !important;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(176, 59, 49, 0.14);
+  color: #f0a69f !important;
+}
+
+.real-gto-card-picker-sheet > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(244, 235, 208, 0.09);
+}
+
+.real-gto-picker-clear,
+.real-gto-picker-confirm {
+  min-height: 48px;
+  padding: 9px 15px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.real-gto-picker-clear {
+  border: 1px solid rgba(238, 219, 170, 0.14);
+  background: transparent;
+  color: rgba(244, 240, 230, 0.68);
+}
+
+.real-gto-picker-confirm {
+  border: 1px solid rgba(248, 229, 171, 0.58);
+  background: linear-gradient(180deg, #ead48e, #c3a65e);
+  color: #17150e;
+  font-weight: 700;
+}
+
+.real-gto-picker-confirm:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
 }
 
 .real-gto-choice-grid {
@@ -1333,9 +1620,36 @@
     font-size: 16px;
   }
 
-  .real-gto-card-field select {
-    min-height: 56px;
-    font-size: 21px;
+  .real-gto-card-trigger {
+    min-height: 78px;
+  }
+
+  .real-gto-card-picker-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .real-gto-card-picker-sheet {
+    width: 100%;
+    max-height: calc(100dvh - 12px);
+    padding: 17px 14px calc(14px + env(safe-area-inset-bottom));
+    border-radius: 18px 18px 0 0;
+  }
+
+  .real-gto-rank-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .real-gto-rank-grid button {
+    min-height: 46px;
+    padding: 0;
+  }
+
+  .real-gto-picker-preview {
+    width: 60px;
+    height: 77px;
+    margin-bottom: 12px;
   }
 
   .real-gto-saved-row {
