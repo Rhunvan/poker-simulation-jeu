@@ -594,6 +594,14 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
     })
   }
 
+  const handlePressureActorChange = (profileId: string) => {
+    updateDraft({
+      pressureActorId: profileId,
+      opponentIds: [profileId],
+      limperCount: 0,
+    })
+  }
+
   const handleStreetChange = (street: RealTableStreet) => {
     const boardCount = getRequiredBoardCount(street)
     const board = draft.board.map((card, index) => (index < boardCount ? card : '')) as RealTableSpotInput['board']
@@ -899,11 +907,18 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
                 </label>
                 <label>
                   <span>Joueur concerné</span>
-                  <select value={draft.pressureActorId} disabled={draft.pressureType === 'none'} onChange={(event) => updateDraft({ pressureActorId: event.target.value })}>
-                    {draft.opponentIds.map((id) => <option key={id} value={id}>{profilesById[id]?.displayName ?? id}</option>)}
+                  <select value={draft.pressureActorId} disabled={draft.pressureType === 'none'} onChange={(event) => handlePressureActorChange(event.target.value)}>
+                    {availableProfiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.displayName}</option>)}
                   </select>
                 </label>
               </div>
+              {draft.pressureType !== 'none' && draft.pressureActorId ? (
+                <p className="real-gto-opponent-mode" aria-live="polite">
+                  {draft.opponentIds.length === 1
+                    ? `Calcul en tête-à-tête contre ${profilesById[draft.pressureActorId]?.displayName ?? draft.pressureActorId}.`
+                    : `Calcul multiway contre ${draft.opponentIds.length} adversaires. Décoche ceux qui ne sont plus dans le coup.`}
+                </p>
+              ) : null}
             </fieldset>
 
             <fieldset className="real-gto-fieldset">
@@ -1013,6 +1028,11 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
                       <span className="real-gto-hand-code">{analysis.input.heroCards.map(formatCardCode).join(' · ')}</span>
                       <span>{STREET_LABELS[analysis.input.street]} · {POSITION_LABELS[analysis.input.position]}</span>
                       <strong>Pot {formatAmount(analysis.input.pot)} · à payer {formatAmount(analysis.legal.toCall)}</strong>
+                      <span className="real-gto-opponent-count">
+                        {analysis.input.opponentIds.length === 1
+                          ? `Calculé contre ${profilesById[analysis.input.opponentIds[0]]?.displayName ?? analysis.input.opponentIds[0]} uniquement`
+                          : `Calculé contre ${analysis.input.opponentIds.length} adversaires encore dans le coup`}
+                      </span>
                     </div>
                   </div>
                   <span className="real-gto-decision-label">Action conseillée</span>
