@@ -206,6 +206,7 @@ function CardPicker({
   value,
   usedCards,
   inputRef,
+  nextInputRef,
   initiallyOpen = false,
   onChange,
 }: {
@@ -214,6 +215,7 @@ function CardPicker({
   value: CardCode | ''
   usedCards: Set<CardCode>
   inputRef?: React.RefObject<HTMLButtonElement | null>
+  nextInputRef?: React.RefObject<HTMLButtonElement | null>
   initiallyOpen?: boolean
   onChange: (value: CardCode | '') => void
 }) {
@@ -245,7 +247,14 @@ function CardPicker({
       return
     }
     onChange(pendingCard)
-    closePicker()
+    setIsOpen(false)
+    requestAnimationFrame(() => {
+      if (nextInputRef?.current) {
+        nextInputRef.current.click()
+      } else {
+        triggerRef.current?.focus()
+      }
+    })
   }
 
   useEffect(() => {
@@ -460,6 +469,13 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
   const [observationNote, setObservationNote] = useState('')
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const firstCardRef = useRef<HTMLButtonElement>(null)
+  const secondCardRef = useRef<HTMLButtonElement>(null)
+  const boardCard1Ref = useRef<HTMLButtonElement>(null)
+  const boardCard2Ref = useRef<HTMLButtonElement>(null)
+  const boardCard3Ref = useRef<HTMLButtonElement>(null)
+  const boardCard4Ref = useRef<HTMLButtonElement>(null)
+  const boardCard5Ref = useRef<HTMLButtonElement>(null)
+  const boardCardRefs = [boardCard1Ref, boardCard2Ref, boardCard3Ref, boardCard4Ref, boardCard5Ref]
   const resultRef = useRef<HTMLElement>(null)
   const saveRequestInFlightRef = useRef(false)
   const deleteRequestInFlightRef = useRef<string | null>(null)
@@ -812,8 +828,8 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
             <fieldset className="real-gto-fieldset">
               <legend>1. Ta main et la street</legend>
               <div className="real-gto-card-grid real-gto-card-grid-hero">
-                <CardPicker id="real-hero-card-1" label="Carte 1" value={draft.heroCards[0]} usedCards={usedCards} inputRef={firstCardRef} initiallyOpen={openFirstCardPicker} onChange={(value) => updateCard('hero', 0, value)} />
-                <CardPicker id="real-hero-card-2" label="Carte 2" value={draft.heroCards[1]} usedCards={usedCards} onChange={(value) => updateCard('hero', 1, value)} />
+                <CardPicker id="real-hero-card-1" label="Carte 1" value={draft.heroCards[0]} usedCards={usedCards} inputRef={firstCardRef} nextInputRef={secondCardRef} initiallyOpen={openFirstCardPicker} onChange={(value) => updateCard('hero', 0, value)} />
+                <CardPicker id="real-hero-card-2" label="Carte 2" value={draft.heroCards[1]} usedCards={usedCards} inputRef={secondCardRef} nextInputRef={requiredBoardCount > 0 ? boardCard1Ref : undefined} onChange={(value) => updateCard('hero', 1, value)} />
               </div>
               <div className="real-gto-choice-grid real-gto-choice-grid-street" role="radiogroup" aria-label="Street">
                 {(Object.keys(STREET_LABELS) as RealTableStreet[]).map((street) => (
@@ -825,7 +841,16 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
               {requiredBoardCount > 0 ? (
                 <div className="real-gto-card-grid real-gto-board-grid">
                   {Array.from({ length: requiredBoardCount }, (_, index) => (
-                    <CardPicker key={index} id={`real-board-card-${index + 1}`} label={`Board ${index + 1}`} value={draft.board[index]} usedCards={usedCards} onChange={(value) => updateCard('board', index, value)} />
+                    <CardPicker
+                      key={index}
+                      id={`real-board-card-${index + 1}`}
+                      label={`Board ${index + 1}`}
+                      value={draft.board[index]}
+                      usedCards={usedCards}
+                      inputRef={boardCardRefs[index]}
+                      nextInputRef={index + 1 < requiredBoardCount ? boardCardRefs[index + 1] : undefined}
+                      onChange={(value) => updateCard('board', index, value)}
+                    />
                   ))}
                 </div>
               ) : null}
