@@ -38,4 +38,24 @@ describe('session stats and recaves', () => {
     expect(heroStats.rebuyAmount).toBe(200)
     expect(heroStats.totalInvested).toBe(400)
   })
+
+  it('recaves for half of the biggest stack when that exceeds the base cave', () => {
+    const state = resetTableState(makeConfig({ maxSeats: 2 }), getTestProfiles(1), 42)
+    const hero = state.players.find((player) => player.id === 'hero')!
+    const opponent = state.players.find((player) => player.id !== 'hero')!
+
+    hero.stack = 0
+    opponent.stack = 1_000
+    state.handInProgress = false
+    state.currentActorId = null
+
+    const next = startNextHand(state, 0)
+    const nextHero = next.players.find((player) => player.id === 'hero')!
+    const heroStats = getSessionStats(next, 'hero')
+
+    expect(nextHero.stack + nextHero.totalCommitted).toBe(500)
+    expect(nextHero.totalRebuyAmount).toBe(500)
+    expect(heroStats.rebuyAmount).toBe(500)
+    expect(heroStats.totalInvested).toBe(700)
+  })
 })

@@ -59,7 +59,7 @@ export function HistoryPanel({
   heroId,
 }: HistoryPanelProps) {
   const [activeView, setActiveView] = useState<'actions' | 'hands'>('actions')
-  const [isPreviousHandOpen, setIsPreviousHandOpen] = useState(true)
+  const [isPreviousHandOpen, setIsPreviousHandOpen] = useState(false)
   const activeCount = activeView === 'actions' ? entries.length : handSummaries.length
   const lastCompletedHand = handSummaries[handSummaries.length - 1] ?? null
   const previousHandBoard = lastCompletedHand?.board.map((code) => createCard(code as CardCode)) ?? []
@@ -77,14 +77,22 @@ export function HistoryPanel({
         <div className="history-toolbar">
           <div className="history-tabs" role="tablist" aria-label="Historique">
             <button
+              id="history-tab-actions"
               type="button"
+              role="tab"
+              aria-selected={activeView === 'actions'}
+              aria-controls="history-panel-actions"
               className={activeView === 'actions' ? 'active' : ''}
               onClick={() => setActiveView('actions')}
             >
               Actions
             </button>
             <button
+              id="history-tab-hands"
               type="button"
+              role="tab"
+              aria-selected={activeView === 'hands'}
+              aria-controls="history-panel-hands"
               className={activeView === 'hands' ? 'active' : ''}
               onClick={() => setActiveView('hands')}
             >
@@ -121,78 +129,90 @@ export function HistoryPanel({
             </div>
           </button>
 
-          {isPreviousHandOpen ? (
-            <div className="previous-hand-body">
-              <div className="previous-hand-section">
-                <span className="previous-hand-label">Board final</span>
-                <div className="previous-hand-board">
-                  {previousHandBoard.map((card) => (
-                    <PlayingCard key={`previous-board-${card.code}`} card={card} size="seat" />
-                  ))}
-                </div>
+          <div className="previous-hand-body" hidden={!isPreviousHandOpen}>
+            <div className="previous-hand-section">
+              <span className="previous-hand-label">Board final</span>
+              <div className="previous-hand-board">
+                {previousHandBoard.map((card) => (
+                  <PlayingCard key={`previous-board-${card.code}`} card={card} size="seat" />
+                ))}
               </div>
+            </div>
 
+            <div className="previous-hand-section">
+              <span className="previous-hand-label">
+                {lastCompletedHand.winners.length > 1 ? 'Gagnants' : 'Gagnant'}
+              </span>
+              <div className="previous-hand-winners">
+                {lastCompletedHand.winners.map((winner) => (
+                  <div key={`winner-${lastCompletedHand.handNumber}-${winner.playerId}`} className="previous-hand-winner">
+                    <strong>{playerNames[winner.playerId] ?? winner.playerId}</strong>
+                    <span>
+                      {formatHandDescription(winner.category, winner.description, winner.wonUncontested)} ·{' '}
+                      {formatAmount(winner.amount, currencyLabel)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {lastCompletedHand.showdown && lastCompletedHand.shownHands && lastCompletedHand.shownHands.length > 0 ? (
               <div className="previous-hand-section">
-                <span className="previous-hand-label">
-                  {lastCompletedHand.winners.length > 1 ? 'Gagnants' : 'Gagnant'}
-                </span>
-                <div className="previous-hand-winners">
-                  {lastCompletedHand.winners.map((winner) => (
-                    <div key={`winner-${lastCompletedHand.handNumber}-${winner.playerId}`} className="previous-hand-winner">
-                      <strong>{playerNames[winner.playerId] ?? winner.playerId}</strong>
-                      <span>
-                        {formatHandDescription(winner.category, winner.description, winner.wonUncontested)} ·{' '}
-                        {formatAmount(winner.amount, currencyLabel)}
-                      </span>
+                <span className="previous-hand-label">Mains montrées</span>
+                <div className="previous-hand-shown-list">
+                  {lastCompletedHand.shownHands.map((shownHand) => (
+                    <div
+                      key={`shown-${lastCompletedHand.handNumber}-${shownHand.playerId}`}
+                      className="previous-hand-shown-entry"
+                    >
+                      <div className="previous-hand-shown-head">
+                        <strong>{playerNames[shownHand.playerId] ?? shownHand.playerId}</strong>
+                        <span>{formatHandDescription(shownHand.category, shownHand.description)}</span>
+                      </div>
+                      <div className="previous-hand-hole-cards">
+                        {shownHand.holeCards.map((code) => (
+                          <PlayingCard key={`shown-card-${shownHand.playerId}-${code}`} card={createCard(code)} size="seat" />
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
-
-              {lastCompletedHand.showdown && lastCompletedHand.shownHands && lastCompletedHand.shownHands.length > 0 ? (
-                <div className="previous-hand-section">
-                  <span className="previous-hand-label">Mains montrées</span>
-                  <div className="previous-hand-shown-list">
-                    {lastCompletedHand.shownHands.map((shownHand) => (
-                      <div
-                        key={`shown-${lastCompletedHand.handNumber}-${shownHand.playerId}`}
-                        className="previous-hand-shown-entry"
-                      >
-                        <div className="previous-hand-shown-head">
-                          <strong>{playerNames[shownHand.playerId] ?? shownHand.playerId}</strong>
-                          <span>{formatHandDescription(shownHand.category, shownHand.description)}</span>
-                        </div>
-                        <div className="previous-hand-hole-cards">
-                          {shownHand.holeCards.map((code) => (
-                            <PlayingCard key={`shown-card-${shownHand.playerId}-${code}`} card={createCard(code)} size="seat" />
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </section>
       ) : null}
 
-      <div className="history-list">
-        {activeView === 'actions' ? (
-          entries.length === 0 ? (
-            <p className="empty-history">Aucune action enregistree pour l instant.</p>
-          ) : (
-            entries
-              .slice()
-              .reverse()
-              .map((entry) => (
-                <div key={entry.id} className="history-entry" data-street={entry.street}>
-                  <span className="history-street">{entry.street}</span>
-                  <p>{entry.text}</p>
-                </div>
-              ))
-          )
-        ) : handSummaries.length === 0 ? (
+      <div
+        id="history-panel-actions"
+        className="history-list"
+        role="tabpanel"
+        aria-labelledby="history-tab-actions"
+        hidden={activeView !== 'actions'}
+      >
+        {entries.length === 0 ? (
+          <p className="empty-history">Aucune action enregistree pour l instant.</p>
+        ) : (
+          entries
+            .slice()
+            .reverse()
+            .map((entry) => (
+              <div key={entry.id} className="history-entry" data-street={entry.street}>
+                <span className="history-street">{entry.street}</span>
+                <p>{entry.text}</p>
+              </div>
+            ))
+        )}
+      </div>
+
+      <div
+        id="history-panel-hands"
+        className="history-list"
+        role="tabpanel"
+        aria-labelledby="history-tab-hands"
+        hidden={activeView !== 'hands'}
+      >
+        {handSummaries.length === 0 ? (
           <p className="empty-history">Aucune main terminee dans cette session pour l instant.</p>
         ) : (
           handSummaries

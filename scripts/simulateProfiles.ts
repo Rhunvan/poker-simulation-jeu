@@ -1,6 +1,6 @@
 import { pathToFileURL } from 'url'
 
-import { PLAYER_PROFILES, PLAYER_PROFILES_BY_ID } from '../src/config/playerProfiles'
+import { botProfiles, botProfilesById } from '../src/config/botProfiles'
 import { REAL_TABLE_RULES } from '../src/config/tableRules'
 import type { TableConfig } from '../src/config/schema'
 import {
@@ -111,7 +111,7 @@ function makeSimulationConfig(): TableConfig {
     blindSchedule: REAL_TABLE_RULES.blindSchedule?.map((level) => ({ ...level })),
     rebuy: { ...REAL_TABLE_RULES.rebuy },
     includeHero: false,
-    maxSeats: 9,
+    maxSeats: REAL_TABLE_RULES.maxSeats,
     heroSeatIndex: 0,
   }
 }
@@ -341,7 +341,7 @@ function currentEffectiveStackBb(table: TableState, actorId: string): number {
   return Math.min(actorTotal, opponentTotal) / table.config.bigBlind
 }
 
-function finalizeHand(table: TableState, hand: HandRuntime, counters: Record<string, PlayerCounters>): void {
+export function finalizeHand(table: TableState, hand: HandRuntime, counters: Record<string, PlayerCounters>): void {
   markSawFlop(table, hand, counters)
   if (!table.showdown) {
     return
@@ -365,11 +365,11 @@ export function runProfileSimulation(options: { hands?: number; seed?: number } 
   const handsTarget = options.hands ?? 10_000
   const seed = options.seed ?? 2_604_160
   const config = makeSimulationConfig()
-  const counters = Object.fromEntries(PLAYER_PROFILES.map((profile) => [profile.id, createCounters()])) satisfies Record<
+  const counters = Object.fromEntries(botProfiles.map((profile) => [profile.id, createCounters()])) satisfies Record<
     string,
     PlayerCounters
   >
-  let table = startNextHandInPlace(createInitialTableState(config, PLAYER_PROFILES, seed), 0)
+  let table = startNextHandInPlace(createInitialTableState(config, botProfiles, seed), 0)
   let hand = createHandRuntime(table, counters)
   let completedHands = 0
 
@@ -392,7 +392,7 @@ export function runProfileSimulation(options: { hands?: number; seed?: number } 
       continue
     }
 
-    const profile = PLAYER_PROFILES_BY_ID[actorId]
+    const profile = botProfilesById[actorId]
     if (!profile) {
       throw new Error(`Missing bot profile for ${actorId}`)
     }
@@ -406,7 +406,7 @@ export function runProfileSimulation(options: { hands?: number; seed?: number } 
   return {
     handsSimulated: completedHands,
     seed,
-    players: PLAYER_PROFILES.map((profile) => {
+    players: botProfiles.map((profile) => {
       const stats = counters[profile.id]
       return {
         id: profile.id,

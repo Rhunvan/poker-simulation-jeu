@@ -16,6 +16,69 @@ function favoriteHandMatch(profile: BotProfile, handKey: string): boolean {
   return profile.quirks?.favoriteHands?.includes(handKey) ?? false
 }
 
+function callTrainSensitivity(profile: BotProfile): number {
+  switch (profile.id) {
+    case 'pierre':
+      return 0.68
+    case 'eric_b':
+      return 0.46
+    case 'fabrice':
+      return 0.36
+    case 'pascal_2':
+      return 0.3
+    case 'gilles':
+      return 0.62
+    case 'bruno':
+      return 0.18
+    default:
+      return 0.12
+  }
+}
+
+function applyPreflopCallTrain(snapshot: PopulationSnapshot, profile: BotProfile, nextSnapshot: PopulationSnapshot): void {
+  if (
+    snapshot.street !== 'preflop' ||
+    (snapshot.scenario !== 'facing-open' && snapshot.scenario !== 'facing-3bet') ||
+    snapshot.toCallBb <= 0
+  ) {
+    return
+  }
+
+  const sensitivity = callTrainSensitivity(profile)
+  if (sensitivity <= 0) {
+    return
+  }
+
+  const multiwayPull = clamp((snapshot.playersInHand - 2) * 0.18, 0, 0.8)
+  const potOddsPull = clamp(snapshot.potBb / Math.max(1, snapshot.toCallBb) / 5, 0, 0.7)
+  const noFoldEquityMinRaise = snapshot.currentBetBb <= 2 && snapshot.toCallBb <= 2
+  const cheapOpenPull = snapshot.currentBetBb <= 4 ? 0.45 : snapshot.currentBetBb <= 8 ? 0.18 : 0
+  const expensivePressure = snapshot.currentBetBb >= 15 ? 0.72 : snapshot.currentBetBb >= 12 ? 0.46 : snapshot.currentBetBb >= 10 ? 0.24 : 0
+  const chainBoost = sensitivity * (multiwayPull + potOddsPull + cheapOpenPull + (noFoldEquityMinRaise ? 0.65 : 0))
+
+  nextSnapshot.candidateWeights.call += chainBoost
+  nextSnapshot.candidateWeights.fold *= clamp(1 - chainBoost * 0.42 + expensivePressure, 0.42, 1.65)
+
+  if (noFoldEquityMinRaise) {
+    nextSnapshot.candidateWeights.call += 0.32 + sensitivity * 0.28
+    nextSnapshot.candidateWeights.fold *= 0.18
+    nextSnapshot.candidateWeights.raise *= 0.72
+    nextSnapshot.tags.push('2bb-no-fold-equity')
+  }
+
+  if (profile.id === 'fabrice' && snapshot.playersInHand >= 4 && snapshot.potBb / Math.max(1, snapshot.toCallBb) >= 3.2) {
+    nextSnapshot.candidateWeights.call += 0.22
+    nextSnapshot.tags.push('fabrice-price-in')
+  }
+
+  if (expensivePressure > 0) {
+    nextSnapshot.candidateWeights.call *= clamp(1 - expensivePressure * (profile.quirks?.irrationalCalls ? 0.28 : 0.72), 0.34, 1)
+    nextSnapshot.tags.push('big-open-breaks-call-train')
+  } else if (chainBoost > 0.18) {
+    nextSnapshot.tags.push('call-train')
+  }
+}
+
 export function applyPersonaOverlay(
   _context: DecisionContext,
   snapshot: PopulationSnapshot,
@@ -68,6 +131,7 @@ export function applyPersonaOverlay(
         nextSnapshot.candidateWeights.raise *= 0.52
       }
     }
+    applyPreflopCallTrain(snapshot, profile, nextSnapshot)
     if (entryScore < requiredEntry) {
       const penalty = requiredEntry - entryScore
       nextSnapshot.candidateWeights.fold += penalty * 2.2

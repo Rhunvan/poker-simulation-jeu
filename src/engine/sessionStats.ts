@@ -3,7 +3,7 @@ import type { SessionStats, TableState } from './core/types'
 export function getSessionStats(state: TableState, playerId = 'hero'): SessionStats {
   const player = state.players.find((entry) => entry.id === playerId) ?? null
   const baseStack = player?.startingStack ?? 0
-  const rebuyAmount = (player?.rebuys ?? 0) * state.config.rebuy.defaultAmount
+  const rebuyAmount = player?.totalRebuyAmount ?? 0
 
   const stats: SessionStats = {
     playerId,

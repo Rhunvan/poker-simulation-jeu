@@ -20,10 +20,16 @@ export interface ActionDelayConfig {
 export interface TableRebuyConfig {
   enabled: boolean
   defaultAmount: number
-  specialRebuyAmount: number
-  availabilityRule: 'configurable'
+  maxStackFraction: number
+  availabilityRule: 'half-max-stack'
   notes: string
   policy: 'auto-when-busted' | 'manual'
+}
+
+export interface TableStraddleConfig {
+  enabled: boolean
+  amount: number
+  label: string
 }
 
 export interface TableRules {
@@ -42,9 +48,11 @@ export interface TableRules {
   heroSeatIndex: number
   heroDisplayName: string
   includeHero: boolean
+  fixedSeatOrder?: string[]
   oddChipRule: 'first-left-of-dealer'
   blindProgression: 'static' | 'elapsed'
   blindSchedule?: BlindLevel[]
+  straddle?: TableStraddleConfig
   rebuy: TableRebuyConfig
 }
 

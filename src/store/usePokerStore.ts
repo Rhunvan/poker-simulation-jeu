@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-import { botProfiles, botProfilesById } from '../config/botProfiles'
+import { AFTERNOON_2026_07_11_PROFILE_IDS, botProfilesById } from '../config/botProfiles'
 import { tableConfig } from '../config/tableConfig'
 import { applyPlayerCommand, resetTableState, startNextHand } from '../engine'
 import { decideBotAction } from '../engine/bots/botDecision'
@@ -13,6 +13,7 @@ type GameSpeed = 1 | 2 | 4
 
 interface PokerStoreState {
   table: TableState
+  activeProfileIds: string[]
   isPaused: boolean
   speed: GameSpeed
   lastClockSyncAt: number | null
@@ -20,11 +21,29 @@ interface PokerStoreState {
   togglePause: () => void
   setSpeed: (speed: GameSpeed) => void
   resetSession: () => void
+  configureLineup: (profileIds: string[]) => void
   applyHeroAction: (command: PlayerCommand) => void
   syncClock: () => void
+  advanceTime: (milliseconds: number) => void
 }
 
 let scheduledTimeout: number | null = null
+
+const defaultActiveProfileIds = AFTERNOON_2026_07_11_PROFILE_IDS.filter((id) => Boolean(botProfilesById[id]))
+
+function sanitizeProfileIds(profileIds: string[]): string[] {
+  const knownProfileIds = new Set(Object.keys(botProfilesById))
+  const uniqueIds = [...new Set(profileIds)].filter((id) => knownProfileIds.has(id))
+  const limitedIds = uniqueIds.slice(0, Math.max(1, tableConfig.maxSeats - (tableConfig.includeHero ? 1 : 0)))
+
+  return limitedIds.length > 0 ? limitedIds : defaultActiveProfileIds.slice(0, 1)
+}
+
+function getProfilesForLineup(profileIds: string[]) {
+  return sanitizeProfileIds(profileIds)
+    .map((id) => botProfilesById[id])
+    .filter((profile) => Boolean(profile))
+}
 
 function clearScheduledTimeout(): void {
   if (scheduledTimeout !== null) {
@@ -133,7 +152,8 @@ function scheduleLoop(get: () => PokerStoreState, set: (fn: (state: PokerStoreSt
 export const usePokerStore = create<PokerStoreState>()(
   persist(
     (set, get) => ({
-      table: resetTableState(tableConfig, botProfiles),
+      table: resetTableState(tableConfig, getProfilesForLineup(defaultActiveProfileIds)),
+      activeProfileIds: defaultActiveProfileIds,
       isPaused: false,
       speed: 1,
       lastClockSyncAt: Date.now(),
@@ -171,8 +191,20 @@ export const usePokerStore = create<PokerStoreState>()(
       },
       resetSession: () => {
         clearScheduledTimeout()
+        set((state) => ({
+          table: resetTableState(tableConfig, getProfilesForLineup(state.activeProfileIds), Date.now()),
+          isPaused: false,
+          speed: 1,
+          lastClockSyncAt: Date.now(),
+        }))
+        get().resumeLoop()
+      },
+      configureLineup: (profileIds) => {
+        const activeProfileIds = sanitizeProfileIds(profileIds)
+        clearScheduledTimeout()
         set(() => ({
-          table: resetTableState(tableConfig, botProfiles, Date.now()),
+          table: resetTableState(tableConfig, getProfilesForLineup(activeProfileIds), Date.now()),
+          activeProfileIds,
           isPaused: false,
           speed: 1,
           lastClockSyncAt: Date.now(),
@@ -209,21 +241,36 @@ export const usePokerStore = create<PokerStoreState>()(
       syncClock: () => {
         set((state) => withSyncedClock(state))
       },
+      advanceTime: (milliseconds) => {
+        const elapsed = Math.max(0, Math.round(milliseconds))
+        set((state) => ({
+          table: {
+            ...state.table,
+            sessionElapsedMs: state.table.sessionElapsedMs + elapsed,
+          },
+        }))
+      },
     }),
     {
-      name: 'local-poker-table-state-v3',
+      name: 'local-poker-table-state-v5-configurable-lineup-gto',
       merge: (persistedState, currentState) => {
         const persisted = persistedState as Partial<PokerStoreState>
         const persistedTable = persisted.table
+        const activeProfileIds = sanitizeProfileIds(persisted.activeProfileIds ?? currentState.activeProfileIds)
 
         return {
           ...currentState,
           ...persisted,
+          activeProfileIds,
           table: persistedTable
             ? {
                 ...currentState.table,
                 ...persistedTable,
-                players: persistedTable.players ?? currentState.table.players,
+                players: (persistedTable.players ?? currentState.table.players).map((player) => ({
+                  ...player,
+                  totalRebuyAmount:
+                    player.totalRebuyAmount ?? player.rebuys * currentState.table.config.rebuy.defaultAmount,
+                })),
                 deck: persistedTable.deck ?? currentState.table.deck,
                 board: persistedTable.board ?? currentState.table.board,
                 pots: persistedTable.pots ?? currentState.table.pots,
@@ -237,6 +284,7 @@ export const usePokerStore = create<PokerStoreState>()(
       },
       partialize: (state) => ({
         table: state.table,
+        activeProfileIds: state.activeProfileIds,
         isPaused: state.isPaused,
         speed: state.speed,
       }),

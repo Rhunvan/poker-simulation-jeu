@@ -245,9 +245,7 @@ export function decideBotAction(
         ? 0.84
         : profile.id === 'fabrice'
           ? 0.88
-          : profile.id === 'eric'
-            ? 0.9
-            : 0.92
+          : 0.92
     if (snapshot.handStrength < fourBetThreshold) {
       commandChoice = {
         seed: nextSeed,

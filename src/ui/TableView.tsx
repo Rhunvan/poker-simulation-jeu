@@ -9,6 +9,8 @@ import { HeroActionPanel } from './HeroActionPanel'
 import { HistoryPanel } from './HistoryPanel'
 import { formatHandDescription } from './handDescriptions'
 import { PlayingCard } from './PlayingCard'
+import { PlayerLineupModal } from './PlayerLineupModal'
+import { RealTableGtoView } from './RealTableGtoView'
 import { SeatView } from './SeatView'
 import { SessionStatsModal } from './SessionStatsModal'
 import { buildTableDebugSnapshot } from './tableDebug'
@@ -19,9 +21,12 @@ interface TableViewProps {
   speed: 1 | 2 | 4
   isPaused: boolean
   botProfiles: Record<string, BotProfile>
+  availableProfiles: BotProfile[]
+  activeProfileIds: string[]
   onHeroAction: (command: PlayerCommand) => void
   onPauseToggle: () => void
   onReset: () => void
+  onLineupApply: (profileIds: string[]) => void
   onSpeedChange: (speed: 1 | 2 | 4) => void
 }
 
@@ -83,12 +88,17 @@ export function TableView({
   speed,
   isPaused,
   botProfiles,
+  availableProfiles,
+  activeProfileIds,
   onHeroAction,
   onPauseToggle,
   onReset,
+  onLineupApply,
   onSpeedChange,
 }: TableViewProps) {
   const [isSessionStatsOpen, setIsSessionStatsOpen] = useState(false)
+  const [isLineupOpen, setIsLineupOpen] = useState(false)
+  const [isRealGtoOpen, setIsRealGtoOpen] = useState(false)
   const [isSeatDebugEnabled, setIsSeatDebugEnabled] = useState(false)
   const level = getCurrentBlindLevel(table)
   const hero = table.players.find((player) => player.id === 'hero') ?? null
@@ -133,29 +143,40 @@ export function TableView({
           <div className="brand-block">
             <p className="eyebrow">{table.config.tableName}</p>
             <div className="headline-row">
-              <h1>Cash game prive</h1>
+              <h1>Cash game privé</h1>
               <span className="table-badge">{table.config.maxSeats}-max</span>
             </div>
-            <p className="status-line">
-              {table.config.variant} · {table.config.mode} · blindes {level.smallBlind}/{level.bigBlind}
-              {level.ante > 0 ? ` · ante ${level.ante}` : ''} · cave {table.config.startingStack.toLocaleString()} {table.config.currencyLabel} · main #{table.handNumber}
+            <p className="status-line" aria-label={`${table.config.variant}, ${table.config.mode}`}>
+              <span>Blindes {level.smallBlind.toLocaleString()} / {level.bigBlind.toLocaleString()}</span>
+              {level.ante > 0 ? <span>Ante {level.ante.toLocaleString()}</span> : null}
+              {table.config.straddle?.enabled ? (
+                <span>{table.config.straddle.label} {table.config.straddle.amount.toLocaleString()}</span>
+              ) : null}
+              <span>Cave {table.config.startingStack.toLocaleString()}</span>
+              <span>Main #{table.handNumber}</span>
             </p>
           </div>
 
           <div className="controls">
-            <button type="button" onClick={onPauseToggle}>
+            <button type="button" className="control-primary" onClick={onPauseToggle}>
               {isPaused ? 'Reprendre' : 'Pause'}
             </button>
-            <button type="button" onClick={() => setIsSessionStatsOpen(true)}>
-              Stats session
+            <button type="button" className="real-gto-trigger" onClick={() => setIsRealGtoOpen(true)}>
+              GTO table réelle
+            </button>
+            <button type="button" className="control-secondary" onClick={() => setIsSessionStatsOpen(true)}>
+              Stats
+            </button>
+            <button type="button" className="control-secondary" onClick={() => setIsLineupOpen(true)}>
+              Joueurs {activeProfileIds.length + 1}/{table.config.maxSeats}
             </button>
             <button
               type="button"
-              className={isSeatDebugEnabled ? 'active' : ''}
+              className={`debug-control ${isSeatDebugEnabled ? 'active' : ''}`}
               aria-pressed={isSeatDebugEnabled}
               onClick={() => setIsSeatDebugEnabled((value) => !value)}
             >
-              Debug sieges
+              Debug
             </button>
             <div className="speed-group" role="group" aria-label="Vitesse">
               {[1, 2, 4].map((value) => (
@@ -169,13 +190,17 @@ export function TableView({
                 </button>
               ))}
             </div>
-            <button type="button" className="danger" onClick={onReset}>
+            <button type="button" className="danger reset-control" onClick={onReset}>
               Nouvelle session
             </button>
           </div>
         </header>
 
         <div className="workspace">
+          <aside className="decision-rail" aria-label="Décision du Hero">
+            {hero && <HeroActionPanel table={table} hero={hero} onAction={onHeroAction} />}
+          </aside>
+
           <section className="table-panel">
             <div className="table-summary">
               <div className="summary-item">
@@ -312,9 +337,7 @@ export function TableView({
             </div>
           </section>
 
-          <div className="side-rail">
-            {hero && <HeroActionPanel table={table} hero={hero} onAction={onHeroAction} />}
-
+          <aside className="history-rail" aria-label="Historique de la table">
             <HistoryPanel
               entries={table.history}
               handSummaries={table.handSummaries}
@@ -323,7 +346,7 @@ export function TableView({
               playerNames={playerNames}
               heroId={hero?.id ?? 'hero'}
             />
-          </div>
+          </aside>
         </div>
       </div>
 
@@ -333,6 +356,24 @@ export function TableView({
         stats={sessionStats}
         currencyLabel={table.config.currencyLabel}
         playerName={hero?.displayName ?? 'Hero'}
+      />
+      <PlayerLineupModal
+        isOpen={isLineupOpen}
+        profiles={availableProfiles}
+        activeProfileIds={activeProfileIds}
+        maxActive={Math.max(1, table.config.maxSeats - 1)}
+        onClose={() => setIsLineupOpen(false)}
+        onApply={(profileIds) => {
+          onLineupApply(profileIds)
+          setIsLineupOpen(false)
+        }}
+      />
+      <RealTableGtoView
+        key={table.players.map((player) => player.id).join(':')}
+        open={isRealGtoOpen}
+        table={table}
+        profilesById={botProfiles}
+        onClose={() => setIsRealGtoOpen(false)}
       />
     </div>
   )

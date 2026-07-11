@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local validation and generated artifacts
+/output/
+/tmp/
+/.playwright-cli/
+__pycache__/

@@ -39,6 +39,7 @@ export type ActionKind =
   | 'post-ante'
   | 'post-small-blind'
   | 'post-big-blind'
+  | 'post-straddle'
   | 'collect'
   | 'showdown'
 
@@ -91,6 +92,7 @@ export interface TablePlayer {
   lastAction: PlayerLastAction | null
   cardsVisible: boolean
   rebuys: number
+  totalRebuyAmount: number
   botProfileId?: string
   tableTalk: string | null
   memory: PlayerMemory

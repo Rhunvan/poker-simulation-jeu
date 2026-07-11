@@ -98,9 +98,11 @@ Champs importants:
 - `startingStack`
 - `buyInDefault`
 - `rebuy.defaultAmount`
-- `rebuy.specialRebuyAmount`
+- `rebuy.maxStackFraction`
 - `rebuy.availabilityRule`
 - `rebuy.notes`
+
+La recave automatique utilise le montant le plus eleve entre la cave de base et la moitie du plus gros stack present.
 
 ### Ecologie globale de la table
 
@@ -156,9 +158,9 @@ Le moteur ne copie pas brutalement ces chiffres. Il s en sert comme ancre de cal
 
 ## Ce qui a ete refondu
 
-- vraie config cash game privee `100/200`, cave `20 000`, rake `0`
+- vraie config cash game privee `500/1 000`, cave `40 000`, rake `0`
 - pool de population loose/passive avec gros sizings non standard
-- profils nominatifs Pierre, Eric, Eric B, Gilles, David, Fabrice, Martin, Renaud, Pascal
+- profils nominatifs Eric B, Pierre, David, Guillaume, Bruno, Pascal 2 et Fabrice
 - pipeline bot `population -> persona -> emotion -> guardrails`
 - anti-jam explicite au-dessus de `35bb`
 - distinction entre gros raise irrationnel et shove
@@ -169,8 +171,6 @@ Le moteur ne copie pas brutalement ces chiffres. Il s en sert comme ancre de cal
 
 Points encore explicitement laisses configurables:
 
-- `rebuy.availabilityRule`
-- `rebuy.notes`
 - `favoriteHandsNotes` de Renaud
 - composition exacte du roster si tu veux figer quels 8 regs sur 9 sont assis quand le hero humain est present
 

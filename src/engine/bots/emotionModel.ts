@@ -1,4 +1,4 @@
-import type { BotProfile } from '../../config/schema'
+import type { BotProfile, EmotionalLevel } from '../../config/schema'
 import type { TablePlayer } from '../core/types'
 
 export interface EmotionModifiers {
@@ -13,7 +13,7 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
-function levelValue(level: BotProfile['emotionalProfile'] extends infer _T ? 'low' | 'medium' | 'high' : never): number {
+function levelValue(level: EmotionalLevel): number {
   if (level === 'high') return 1
   if (level === 'low') return 0.35
   return 0.65

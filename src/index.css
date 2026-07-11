@@ -1,6 +1,8 @@
 :root {
   font-family:
-    Inter,
+    'Avenir Next',
+    Avenir,
+    'SF Pro Text',
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -10,8 +12,8 @@
   line-height: 1.4;
   font-weight: 400;
   color-scheme: dark;
-  background: #07140f;
-  color: #f1f4ef;
+  background: #090c0a;
+  color: #f6f3eb;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -28,12 +30,34 @@ body,
   margin: 0;
   min-width: 320px;
   height: 100%;
-  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+html {
+  background: #090c0a;
+  scroll-behavior: smooth;
 }
 
 body {
-  background: #07140f;
+  background: #090c0a;
   overflow-x: hidden;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button,
+strong,
+.summary-value,
+.stack-chip {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: rgba(224, 194, 111, 0.28);
+  color: #fffaf0;
 }
 
 a {

@@ -52,6 +52,30 @@ describe('betting rules', () => {
     expect(legal?.minRaiseTo).toBe(80)
   })
 
+  it('posts the live option as a straddle and starts action after it', () => {
+    const state = resetTableState(
+      makeConfig({
+        maxSeats: 4,
+        straddle: {
+          enabled: true,
+          amount: 40,
+          label: 'Option',
+        },
+      }),
+      getTestProfiles(3),
+      42,
+    )
+    const straddlePlayer = state.players.find((player) => player.lastAction?.kind === 'post-straddle')
+    const legal = state.currentActorId ? getLegalActions(state, state.currentActorId) : null
+
+    expect(straddlePlayer?.currentBet).toBe(40)
+    expect(state.currentBet).toBe(40)
+    expect(state.lastFullRaiseSize).toBe(40)
+    expect(state.currentActorId).not.toBe(straddlePlayer?.id)
+    expect(legal?.toCall).toBe(40)
+    expect(legal?.minRaiseTo).toBe(80)
+  })
+
   it('does not reopen action after an incomplete all-in raise', () => {
     const state = resetTableState(makeConfig({ maxSeats: 3 }), getTestProfiles(2), 42)
     const smallBlind = state.players.find((player) => player.seatIndex === 1)

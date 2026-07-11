@@ -70,6 +70,7 @@ function createHero(seatIndex: number, startingStack: number): TablePlayer {
     lastAction: null,
     cardsVisible: true,
     rebuys: 0,
+    totalRebuyAmount: 0,
     tableTalk: null,
     memory: createDefaultMemory(),
   }
@@ -95,6 +96,7 @@ function createBot(profile: BotProfile, seatIndex: number, startingStack: number
     lastAction: null,
     cardsVisible: false,
     rebuys: 0,
+    totalRebuyAmount: 0,
     botProfileId: profile.id,
     tableTalk: null,
     memory: createDefaultMemory(),
@@ -108,6 +110,60 @@ function createTablePlayers(
 ): { players: TablePlayer[]; seed: number } {
   const normalizedSeed = normalizeSeed(seed)
   const heroSeatIndex = config.heroSeatIndex
+
+  if (config.fixedSeatOrder?.length) {
+    const profilesById = new Map(profiles.map((profile) => [profile.id, profile]))
+    const assignedProfileIds = new Set<string>()
+    const occupiedSeatIndices = new Set<number>()
+    const players: TablePlayer[] = []
+
+    config.fixedSeatOrder.slice(0, config.maxSeats).forEach((entryId, seatIndex) => {
+      if (entryId === 'hero') {
+        if (config.includeHero) {
+          const hero = createHero(seatIndex, config.startingStack)
+          hero.displayName = config.heroDisplayName
+          players.push(hero)
+          occupiedSeatIndices.add(seatIndex)
+        }
+        return
+      }
+
+      const profile = profilesById.get(entryId)
+      if (profile) {
+        players.push(createBot(profile, seatIndex, config.startingStack))
+        assignedProfileIds.add(profile.id)
+        occupiedSeatIndices.add(seatIndex)
+      }
+    })
+
+    if (config.includeHero && !players.some((player) => player.id === 'hero') && !occupiedSeatIndices.has(heroSeatIndex)) {
+      const hero = createHero(heroSeatIndex, config.startingStack)
+      hero.displayName = config.heroDisplayName
+      players.push(hero)
+      occupiedSeatIndices.add(heroSeatIndex)
+    }
+
+    const remainingSeats = Array.from({ length: config.maxSeats }, (_, seatIndex) => seatIndex).filter(
+      (seatIndex) => !occupiedSeatIndices.has(seatIndex),
+    )
+    profiles
+      .filter((profile) => !assignedProfileIds.has(profile.id))
+      .slice(0, remainingSeats.length)
+      .forEach((profile, index) => {
+        const seatIndex = remainingSeats[index]
+        if (seatIndex !== undefined) {
+          players.push(createBot(profile, seatIndex, config.startingStack))
+        }
+      })
+
+    players.sort((left, right) => left.seatIndex - right.seatIndex)
+
+    return {
+      players,
+      seed: normalizedSeed,
+    }
+  }
+
   const players: TablePlayer[] = config.includeHero ? [createHero(heroSeatIndex, config.startingStack)] : []
   if (config.includeHero && players[0]) {
     players[0].displayName = config.heroDisplayName
@@ -238,19 +294,26 @@ function autoRebuyPlayers(state: TableState): void {
     return
   }
 
+  const maxStack = state.players.reduce((highest, player) => Math.max(highest, player.stack), 0)
+  const rebuyAmount = Math.max(
+    state.config.rebuy.defaultAmount,
+    Math.floor(maxStack * state.config.rebuy.maxStackFraction),
+  )
+
   for (const player of state.players) {
     if (player.stack > 0 || player.isSittingOut) {
       continue
     }
 
-    player.stack = state.config.rebuy.defaultAmount
+    player.stack = rebuyAmount
     player.rebuys += 1
+    player.totalRebuyAmount += rebuyAmount
     appendHistory(
       state,
       'meta',
-      `${player.displayName} rebuy for ${state.config.rebuy.defaultAmount} ${state.config.currencyLabel}`,
+      `${player.displayName} rebuy for ${rebuyAmount} ${state.config.currencyLabel}`,
       player.id,
-      state.config.rebuy.defaultAmount,
+      rebuyAmount,
     )
   }
 }
@@ -755,7 +818,9 @@ function startNextHandInternal(
   nextState.board = []
   nextState.street = 'preflop'
   nextState.currentBet = level.bigBlind
-  nextState.lastFullRaiseSize = level.bigBlind
+  nextState.lastFullRaiseSize = nextState.config.straddle?.enabled
+    ? Math.max(level.bigBlind, nextState.config.straddle.amount)
+    : level.bigBlind
   nextState.fullRaiseCounter = 0
   nextState.handInProgress = true
   nextState.currentActorId = null
@@ -780,7 +845,7 @@ function startNextHandInternal(
   appendHistory(
     nextState,
     'meta',
-    `--- Hand #${nextState.handNumber} | blinds ${level.smallBlind}/${level.bigBlind}${level.ante > 0 ? ` ante ${level.ante}` : ''} ---`,
+    `--- Hand #${nextState.handNumber} | blinds ${level.smallBlind}/${level.bigBlind}${level.ante > 0 ? ` ante ${level.ante}` : ''}${nextState.config.straddle?.enabled ? ` | ${nextState.config.straddle.label} ${nextState.config.straddle.amount}` : ''} ---`,
   )
 
   if (level.ante > 0) {
@@ -820,16 +885,50 @@ function startNextHandInternal(
     bigBlindPaid,
   )
 
+  let straddleSeatIndex: number | null = null
+  if (!assignments.headsUp && nextState.config.straddle?.enabled && nextState.config.straddle.amount > level.bigBlind) {
+    const seatIndex = getNextSeat(
+      nextState.players,
+      assignments.bigBlindSeatIndex,
+      canPlayerAct,
+      nextState.config.maxSeats,
+    )
+    const straddlePlayer = getPlayerAtSeat(nextState.players, seatIndex)
+    if (straddlePlayer) {
+      const straddlePaid = contributeChips(straddlePlayer, nextState.config.straddle.amount, true)
+      straddleSeatIndex = straddlePlayer.seatIndex
+      nextState.currentBet = Math.max(nextState.currentBet, straddlePaid)
+      nextState.lastFullRaiseSize = Math.max(nextState.lastFullRaiseSize, straddlePaid)
+      setAction(
+        straddlePlayer,
+        'preflop',
+        'post-straddle',
+        straddlePaid,
+        `${nextState.config.straddle.label} ${straddlePaid}`,
+      )
+      appendHistory(
+        nextState,
+        'preflop',
+        `${straddlePlayer.displayName}: posts ${nextState.config.straddle.label.toLowerCase()} ${straddlePaid}`,
+        straddlePlayer.id,
+        straddlePaid,
+      )
+    }
+  }
+
   updatePots(nextState)
 
-  const firstSeat = getFirstActorPreflop(
-    nextState.players,
-    assignments.smallBlindSeatIndex,
-    assignments.bigBlindSeatIndex,
-    assignments.headsUp,
-    canPlayerAct,
-    nextState.config.maxSeats,
-  )
+  const firstSeat =
+    straddleSeatIndex === null
+      ? getFirstActorPreflop(
+          nextState.players,
+          assignments.smallBlindSeatIndex,
+          assignments.bigBlindSeatIndex,
+          assignments.headsUp,
+          canPlayerAct,
+          nextState.config.maxSeats,
+        )
+      : getNextSeat(nextState.players, straddleSeatIndex, canPlayerAct, nextState.config.maxSeats)
 
   nextState.currentActorId =
     firstSeat === null ? null : getPlayerAtSeat(nextState.players, firstSeat)?.id ?? null
