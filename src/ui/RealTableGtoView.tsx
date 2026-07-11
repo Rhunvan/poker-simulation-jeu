@@ -223,8 +223,8 @@ function CardPicker({
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const triggerRef = inputRef ?? ownTriggerRef
   const [isOpen, setIsOpen] = useState(initiallyOpen)
-  const [pendingRank, setPendingRank] = useState<Rank | null>(initiallyOpen && value ? value[0] as Rank : null)
-  const [pendingSuit, setPendingSuit] = useState<Suit | null>(initiallyOpen && value ? value[1] as Suit : null)
+  const [pendingRank, setPendingRank] = useState<Rank | null>(null)
+  const [pendingSuit, setPendingSuit] = useState<Suit | null>(null)
   const selectedSuit = value ? value[1] as Suit : null
   const pendingCard = pendingRank && pendingSuit ? `${pendingRank}${pendingSuit}` as CardCode : null
   const isDuplicate = pendingCard !== null && usedCards.has(pendingCard) && pendingCard !== value
@@ -232,8 +232,8 @@ function CardPicker({
   const dialogHelpId = `${id}-picker-help`
 
   function openPicker() {
-    setPendingRank(value ? value[0] as Rank : null)
-    setPendingSuit(value ? value[1] as Suit : null)
+    setPendingRank(null)
+    setPendingSuit(null)
     setIsOpen(true)
   }
 
@@ -242,11 +242,12 @@ function CardPicker({
     requestAnimationFrame(() => triggerRef.current?.focus())
   }
 
-  function confirmCard() {
-    if (!pendingCard || isDuplicate) {
+  function commitCard(rank: Rank, suit: Suit) {
+    const card = `${rank}${suit}` as CardCode
+    if (usedCards.has(card) && card !== value) {
       return
     }
-    onChange(pendingCard)
+    onChange(card)
     setIsOpen(false)
     requestAnimationFrame(() => {
       if (nextInputRef?.current) {
@@ -328,7 +329,7 @@ function CardPicker({
               </button>
             </header>
 
-            <p id={dialogHelpId}>Choisis d’abord la valeur, puis la couleur.</p>
+            <p id={dialogHelpId}>Choisis la valeur puis la couleur. La carte est validée automatiquement.</p>
 
             <div className={`real-gto-picker-preview ${pendingSuit === 'h' || pendingSuit === 'd' ? 'is-red' : ''}`} aria-live="polite">
               <strong>{pendingRank ? (pendingRank === 'T' ? '10' : pendingRank) : '?'}</strong>
@@ -343,7 +344,12 @@ function CardPicker({
                     key={rank}
                     type="button"
                     className={pendingRank === rank ? 'is-selected' : ''}
-                    onClick={() => setPendingRank(rank)}
+                    onClick={() => {
+                      setPendingRank(rank)
+                      if (pendingSuit) {
+                        commitCard(rank, pendingSuit)
+                      }
+                    }}
                     aria-pressed={pendingRank === rank}
                   >
                     {rank === 'T' ? '10' : rank}
@@ -360,7 +366,12 @@ function CardPicker({
                     key={suit}
                     type="button"
                     className={`${pendingSuit === suit ? 'is-selected' : ''} ${suit === 'h' || suit === 'd' ? 'is-red' : ''}`}
-                    onClick={() => setPendingSuit(suit)}
+                    onClick={() => {
+                      setPendingSuit(suit)
+                      if (pendingRank) {
+                        commitCard(pendingRank, suit)
+                      }
+                    }}
                     aria-pressed={pendingSuit === suit}
                   >
                     <strong>{SUIT_SYMBOLS[suit]}</strong>
@@ -373,6 +384,7 @@ function CardPicker({
             {isDuplicate ? <p className="real-gto-picker-error" role="alert">Cette carte est déjà utilisée dans le coup.</p> : null}
 
             <footer>
+              <span className="real-gto-picker-auto">Validation automatique</span>
               {value ? (
                 <button
                   type="button"
@@ -384,10 +396,7 @@ function CardPicker({
                 >
                   Effacer
                 </button>
-              ) : <span />}
-              <button type="button" className="real-gto-picker-confirm" onClick={confirmCard} disabled={!pendingCard || isDuplicate}>
-                {pendingCard && !isDuplicate ? `Choisir ${formatCardCode(pendingCard)}` : 'Choisir cette carte'}
-              </button>
+              ) : null}
             </footer>
           </section>
         </div>
@@ -612,6 +621,12 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
         ? { pressureType: draft.toCall > 0 ? 'bet' : 'none' }
         : {}),
     })
+    const nextBoardIndex = board.findIndex((card, index) => index < boardCount && !card)
+    if (draft.heroCards.every(Boolean) && nextBoardIndex >= 0) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => boardCardRefs[nextBoardIndex]?.current?.click())
+      })
+    }
   }
 
   const runAnalysis = () => {
@@ -658,6 +673,13 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
     setHeroNet('')
     setObservationNote('')
     requestAnimationFrame(() => firstCardRef.current?.focus())
+  }
+
+  const startNextRealHand = () => {
+    resetRealHand()
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => firstCardRef.current?.click())
+    })
   }
 
   const toggleSavedHands = () => {
@@ -717,9 +739,9 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
     }
   }
 
-  const saveAnalyzedHand = async () => {
+  const saveAnalyzedHand = async (): Promise<boolean> => {
     if (!analysis || isDirty || saveStatus === 'success' || saveRequestInFlightRef.current) {
-      return
+      return false
     }
 
     const parsedActualAmount = parseOptionalInteger(actualAmount)
@@ -727,12 +749,12 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
     if (parsedActualAmount === null || (parsedActualAmount !== undefined && parsedActualAmount < 0)) {
       setSaveStatus('error')
       setSaveError('Le montant joué doit être un nombre entier positif.')
-      return
+      return false
     }
     if (parsedHeroNet === null) {
       setSaveStatus('error')
       setSaveError('Le gain ou la perte doit être un nombre entier, par exemple -12000 ou 8000.')
-      return
+      return false
     }
 
     const observation: GtoHandObservationInput = {
@@ -771,11 +793,19 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
       setLastSavedHandId(payload.hand.id)
       setSaveStatus('success')
       setSavedHandsStatus('ready')
+      return true
     } catch (error: unknown) {
       setSaveStatus('error')
       setSaveError(error instanceof Error ? error.message : 'La main n’a pas pu être enregistrée.')
+      return false
     } finally {
       saveRequestInFlightRef.current = false
+    }
+  }
+
+  const saveAndStartNext = async () => {
+    if (await saveAnalyzedHand()) {
+      startNextRealHand()
     }
   }
 
@@ -818,7 +848,7 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
             >
               Mains enregistrées <strong>{savedHandsStatus === 'loading' ? '…' : savedHandCount}</strong>
             </button>
-            <button type="button" className="real-gto-new-hand" onClick={resetRealHand}>Nouvelle main</button>
+            <button type="button" className="real-gto-new-hand" onClick={startNextRealHand}>Nouvelle main</button>
             <button ref={closeButtonRef} type="button" className="real-gto-close" onClick={onClose}>← Simulation</button>
           </div>
         </header>
@@ -869,19 +899,19 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
               <div className="real-gto-input-grid">
                 <label>
                   <span>Pot actuel</span>
-                  <input type="number" inputMode="numeric" min="0" step="100" value={draft.pot} onChange={(event) => updateDraft({ pot: Number(event.target.value) })} />
+                  <input type="number" inputMode="numeric" min="0" step="100" value={draft.pot} onFocus={(event) => event.currentTarget.select()} onChange={(event) => updateDraft({ pot: Number(event.target.value) })} />
                 </label>
                 <label>
                   <span>À payer</span>
-                  <input type="number" inputMode="numeric" min="0" step="100" value={draft.toCall} onChange={(event) => updateDraft({ toCall: Number(event.target.value) })} />
+                  <input type="number" inputMode="numeric" min="0" step="100" value={draft.toCall} onFocus={(event) => event.currentTarget.select()} onChange={(event) => updateDraft({ toCall: Number(event.target.value) })} />
                 </label>
                 <label>
                   <span>Ton stack restant</span>
-                  <input type="number" inputMode="numeric" min="1" step="500" value={draft.heroStack} onChange={(event) => updateDraft({ heroStack: Number(event.target.value) })} />
+                  <input type="number" inputMode="numeric" min="1" step="500" value={draft.heroStack} onFocus={(event) => event.currentTarget.select()} onChange={(event) => updateDraft({ heroStack: Number(event.target.value) })} />
                 </label>
                 <label>
                   <span>Stack adverse effectif</span>
-                  <input type="number" inputMode="numeric" min="1" step="500" value={draft.opponentStack} onChange={(event) => updateDraft({ opponentStack: Number(event.target.value) })} />
+                  <input type="number" inputMode="numeric" min="1" step="500" value={draft.opponentStack} onFocus={(event) => event.currentTarget.select()} onChange={(event) => updateDraft({ opponentStack: Number(event.target.value) })} />
                 </label>
                 <label>
                   <span>Ta position</span>
@@ -891,7 +921,7 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
                 </label>
                 <label>
                   <span>Limpers avant toi</span>
-                  <input type="number" inputMode="numeric" min="0" max={Math.max(0, draft.opponentIds.length - (draft.pressureType === 'none' ? 0 : 1))} step="1" value={draft.limperCount} onChange={(event) => updateDraft({ limperCount: Number(event.target.value) })} />
+                  <input type="number" inputMode="numeric" min="0" max={Math.max(0, draft.opponentIds.length - (draft.pressureType === 'none' ? 0 : 1))} step="1" value={draft.limperCount} onFocus={(event) => event.currentTarget.select()} onChange={(event) => updateDraft({ limperCount: Number(event.target.value) })} />
                 </label>
               </div>
             </fieldset>
@@ -943,7 +973,7 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
               </div>
             ) : null}
 
-            <button type="button" className="real-gto-analyze" onClick={runAnalysis}>Analyser ce spot</button>
+            <button type="button" className="real-gto-analyze" onClick={runAnalysis}>Analyser ma main</button>
           </form>
 
           <main ref={resultRef} className="real-gto-result">
@@ -1043,101 +1073,115 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
                     <div><span>Cote requise</span><strong>{analysis.adapted.potOdds > 0 ? `${analysis.adapted.potOdds.toFixed(1)} %` : '—'}</strong></div>
                     <div><span>Marge</span><strong className={adaptedEdge >= 0 ? 'is-positive' : 'is-negative'}>{adaptedEdge >= 0 ? '+' : ''}{adaptedEdge.toFixed(1)} pts</strong></div>
                   </div>
-                  {isDirty ? <p className="real-gto-dirty">Données modifiées — relance l’analyse pour mettre le conseil à jour.</p> : null}
-                </section>
-
-                <section className="real-gto-memory" aria-labelledby="real-gto-memory-title">
-                  <div className="real-gto-section-heading">
-                    <div>
-                      <span>Mémoire de table</span>
-                      <h3 id="real-gto-memory-title">Conserver cette main</h3>
-                    </div>
-                    <p>Les observations sont facultatives. Rien n’est sauvegardé automatiquement.</p>
-                  </div>
-
-                  <div className="real-gto-memory-grid">
-                    <label>
-                      <span>Action réellement jouée</span>
-                      <select
-                        value={actualAction}
-                        disabled={isDirty || saveStatus === 'saving' || saveStatus === 'success'}
-                        onChange={(event) => {
-                          setActualAction(event.target.value as HeroAdviceAction | '')
-                          setSaveStatus('idle')
-                          setSaveError('')
-                        }}
-                      >
-                        <option value="">Non renseignée</option>
-                        {HERO_ADVICE_ACTIONS.map((action) => <option key={action} value={action}>{ACTION_LABELS[action]}</option>)}
-                      </select>
-                    </label>
-                    <label>
-                      <span>Montant réellement joué</span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min="0"
-                        step="100"
-                        placeholder="Facultatif"
-                        value={actualAmount}
-                        disabled={isDirty || saveStatus === 'saving' || saveStatus === 'success'}
-                        onChange={(event) => {
-                          setActualAmount(event.target.value)
-                          setSaveStatus('idle')
-                          setSaveError('')
-                        }}
-                      />
-                    </label>
-                    <label>
-                      <span>Gain / perte net</span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        step="100"
-                        placeholder="Ex. -12000 ou 8000"
-                        value={heroNet}
-                        disabled={isDirty || saveStatus === 'saving' || saveStatus === 'success'}
-                        onChange={(event) => {
-                          setHeroNet(event.target.value)
-                          setSaveStatus('idle')
-                          setSaveError('')
-                        }}
-                      />
-                    </label>
-                    <label className="real-gto-memory-note">
-                      <span>Note</span>
-                      <textarea
-                        rows={2}
-                        maxLength={2000}
-                        placeholder="Lecture, showdown, détail à retenir…"
-                        value={observationNote}
-                        disabled={isDirty || saveStatus === 'saving' || saveStatus === 'success'}
-                        onChange={(event) => {
-                          setObservationNote(event.target.value)
-                          setSaveStatus('idle')
-                          setSaveError('')
-                        }}
-                      />
-                    </label>
-                  </div>
-
-                  {saveStatus === 'error' ? <p className="real-gto-memory-error" role="alert">{saveError}</p> : null}
-                  {saveStatus === 'success' ? (
-                    <p className="real-gto-memory-success" role="status">Main enregistrée. Elle reste consultable dans « Mains enregistrées ».</p>
-                  ) : null}
-                  {isDirty ? <p className="real-gto-memory-hint">Relance l’analyse avant d’enregistrer ce spot modifié.</p> : null}
-
-                  <div className="real-gto-memory-footer">
-                    <small>Cette mémoire n’ajuste jamais automatiquement les profils ni le conseil GTO.</small>
+                  <div className="real-gto-quick-save">
                     <button
                       type="button"
                       disabled={isDirty || saveStatus === 'saving' || saveStatus === 'success'}
-                      onClick={() => void saveAnalyzedHand()}
+                      onClick={() => void saveAndStartNext()}
                     >
-                      {saveStatus === 'saving' ? 'Enregistrement…' : saveStatus === 'success' ? 'Main enregistrée' : 'Enregistrer cette main'}
+                      {saveStatus === 'saving' ? 'Enregistrement…' : 'Enregistrer + main suivante'}
                     </button>
+                    {saveStatus === 'error'
+                      ? <small className="is-error" role="alert">{saveError}</small>
+                      : <small>Un appui suffit. Résultat et note restent facultatifs.</small>}
                   </div>
+                  {isDirty ? <p className="real-gto-dirty">Données modifiées — relance l’analyse pour mettre le conseil à jour.</p> : null}
                 </section>
+
+                <details className="real-gto-memory">
+                  <summary className="real-gto-memory-summary">
+                    <span>
+                      <strong>Ajouter le résultat ou une note</strong>
+                      <small>Action jouée, gain ou lecture du coup</small>
+                    </span>
+                    <em>Ouvrir si besoin</em>
+                  </summary>
+
+                  <div className="real-gto-memory-content">
+
+                    <div className="real-gto-memory-grid">
+                      <label>
+                        <span>Action réellement jouée</span>
+                        <select
+                          value={actualAction}
+                          disabled={isDirty || saveStatus === 'saving' || saveStatus === 'success'}
+                          onChange={(event) => {
+                            setActualAction(event.target.value as HeroAdviceAction | '')
+                            setSaveStatus('idle')
+                            setSaveError('')
+                          }}
+                        >
+                          <option value="">Non renseignée</option>
+                          {HERO_ADVICE_ACTIONS.map((action) => <option key={action} value={action}>{ACTION_LABELS[action]}</option>)}
+                        </select>
+                      </label>
+                      <label>
+                        <span>Montant réellement joué</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min="0"
+                          step="100"
+                          placeholder="Facultatif"
+                          value={actualAmount}
+                          disabled={isDirty || saveStatus === 'saving' || saveStatus === 'success'}
+                          onFocus={(event) => event.currentTarget.select()}
+                          onChange={(event) => {
+                            setActualAmount(event.target.value)
+                            setSaveStatus('idle')
+                            setSaveError('')
+                          }}
+                        />
+                      </label>
+                      <label>
+                        <span>Gain / perte net</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          step="100"
+                          placeholder="Ex. -12000 ou 8000"
+                          value={heroNet}
+                          disabled={isDirty || saveStatus === 'saving' || saveStatus === 'success'}
+                          onFocus={(event) => event.currentTarget.select()}
+                          onChange={(event) => {
+                            setHeroNet(event.target.value)
+                            setSaveStatus('idle')
+                            setSaveError('')
+                          }}
+                        />
+                      </label>
+                      <label className="real-gto-memory-note">
+                        <span>Note</span>
+                        <textarea
+                          rows={2}
+                          maxLength={2000}
+                          placeholder="Lecture, showdown, détail à retenir…"
+                          value={observationNote}
+                          disabled={isDirty || saveStatus === 'saving' || saveStatus === 'success'}
+                          onChange={(event) => {
+                            setObservationNote(event.target.value)
+                            setSaveStatus('idle')
+                            setSaveError('')
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    {saveStatus === 'error' ? <p className="real-gto-memory-error" role="alert">{saveError}</p> : null}
+                    {isDirty ? <p className="real-gto-memory-hint">Relance l’analyse avant d’enregistrer ce spot modifié.</p> : null}
+
+                    <div className="real-gto-memory-footer">
+                      <small>Les détails saisis seront associés à cette main.</small>
+                      <button
+                        type="button"
+                        disabled={isDirty || saveStatus === 'saving' || saveStatus === 'success'}
+                        onClick={() => void saveAndStartNext()}
+                      >
+                        {saveStatus === 'saving' ? 'Enregistrement…' : 'Enregistrer + main suivante'}
+                      </button>
+                    </div>
+                  </div>
+                </details>
 
                 <AdviceComparison analysis={analysis} />
 
@@ -1153,7 +1197,7 @@ export function RealTableGtoView({ open, openFirstCardPicker = false, table, pro
                 <span className="real-gto-ready"><i /> Prêt pour la table réelle</span>
                 <h3>Ajoute tes deux cartes, puis analyse.</h3>
                 <p>Le résultat restera stable pendant que tu le lis. Rien ne sera repris des cartes cachées de la simulation.</p>
-                <button type="button" onClick={() => firstCardRef.current?.focus()}>Saisir le coup</button>
+                <button type="button" onClick={() => firstCardRef.current?.click()}>Saisir le coup</button>
               </section>
             )}
 
